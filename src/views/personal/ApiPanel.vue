@@ -7,8 +7,8 @@
         <div class="relative">
           <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 class="text-xl font-bold theme-text-primary">API 对接</h2>
-              <p class="mt-1 text-sm theme-text-muted">管理您的 API 凭证</p>
+              <h2 class="text-xl font-bold theme-text-primary">{{ t('personalCenter.apiPanel.title') }}</h2>
+              <p class="mt-1 text-sm theme-text-muted">{{ t('personalCenter.apiPanel.subtitle') }}</p>
             </div>
             <span class="theme-badge theme-badge-accent px-3 py-1 text-xs font-semibold">
               {{ t('personalCenter.tabs.api') }}
@@ -27,7 +27,7 @@
           <!-- No credential / null -->
           <div v-else-if="!credential" class="rounded-xl border border-dashed theme-surface-soft p-5">
             <p class="text-sm theme-text-muted">
-              您尚未开通 API 对接功能。开通后可获取 API Key 和 Secret，用于系统对接与自动化操作。
+              {{ t('personalCenter.apiPanel.noCredential') }}
             </p>
             <button
               type="button"
@@ -35,7 +35,7 @@
               class="mt-4 inline-flex items-center rounded-xl theme-btn-primary px-4 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               @click="handleApply"
             >
-              {{ submitting ? '申请中...' : '申请开通' }}
+              {{ submitting ? t('personalCenter.apiPanel.applying') : t('personalCenter.apiPanel.apply') }}
             </button>
           </div>
 
@@ -48,8 +48,8 @@
                 </svg>
               </div>
               <div>
-                <h3 class="text-sm font-semibold theme-text-primary">审核中</h3>
-                <p class="mt-1 text-sm theme-text-muted">您的 API 对接申请正在审核中，请耐心等待。</p>
+                <h3 class="text-sm font-semibold theme-text-primary">{{ t('personalCenter.apiPanel.pendingTitle') }}</h3>
+                <p class="mt-1 text-sm theme-text-muted">{{ t('personalCenter.apiPanel.pendingDesc') }}</p>
               </div>
             </div>
           </div>
@@ -63,9 +63,9 @@
                 </svg>
               </div>
               <div>
-                <h3 class="text-sm font-semibold theme-text-primary">申请已被拒绝</h3>
+                <h3 class="text-sm font-semibold theme-text-primary">{{ t('personalCenter.apiPanel.rejectedTitle') }}</h3>
                 <p v-if="credential.reject_reason" class="mt-1 text-sm theme-text-muted">
-                  拒绝原因：{{ credential.reject_reason }}
+                  {{ t('personalCenter.apiPanel.rejectReason', { reason: credential.reject_reason }) }}
                 </p>
                 <button
                   type="button"
@@ -73,7 +73,7 @@
                   class="mt-4 inline-flex items-center rounded-xl theme-btn-primary px-4 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   @click="handleApply"
                 >
-                  {{ submitting ? '申请中...' : '重新申请' }}
+                  {{ submitting ? t('personalCenter.apiPanel.applying') : t('personalCenter.apiPanel.reapply') }}
                 </button>
               </div>
             </div>
@@ -94,7 +94,7 @@
                     class="inline-flex items-center rounded-lg border theme-btn-secondary px-2.5 py-1 text-xs font-semibold"
                     @click="copyToClipboard(credential.api_key || '')"
                   >
-                    复制
+                    {{ t('personalCenter.apiPanel.copy') }}
                   </button>
                 </div>
               </div>
@@ -112,11 +112,11 @@
                     class="inline-flex items-center rounded-lg border theme-btn-secondary px-2.5 py-1 text-xs font-semibold"
                     @click="handleRegenerate"
                   >
-                    重新生成
+                    {{ t('personalCenter.apiPanel.regenerate') }}
                   </button>
                 </div>
                 <p class="mt-2 text-xs theme-text-muted">
-                  出于安全考虑，Secret 仅在生成时显示一次，之后只展示末四位。
+                  {{ t('personalCenter.apiPanel.secretHint') }}
                 </p>
               </div>
 
@@ -132,9 +132,9 @@
                     </svg>
                   </div>
                   <div class="flex-1">
-                    <h3 class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">新的 API Secret 已生成</h3>
+                    <h3 class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{{ t('personalCenter.apiPanel.newSecretTitle') }}</h3>
                     <p class="mt-1 text-xs text-emerald-700/80 dark:text-emerald-200">
-                      请立即复制并妥善保存，此 Secret 仅显示一次，关闭后将无法再次查看。
+                      {{ t('personalCenter.apiPanel.newSecretWarning') }}
                     </p>
                     <div class="mt-3 flex flex-wrap items-center gap-2">
                       <span class="rounded-lg border border-emerald-300/60 bg-white/60 px-2.5 py-1 font-mono text-sm text-emerald-800 break-all dark:border-emerald-500/30 dark:bg-emerald-900/30 dark:text-emerald-100">
@@ -145,7 +145,7 @@
                         class="inline-flex items-center rounded-lg border border-emerald-300/60 bg-emerald-100/60 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-200/60 dark:border-emerald-500/30 dark:bg-emerald-800/30 dark:text-emerald-200"
                         @click="copyToClipboard(newSecret)"
                       >
-                        复制 Secret
+                        {{ t('personalCenter.apiPanel.copySecret') }}
                       </button>
                     </div>
                   </div>
@@ -156,9 +156,9 @@
               <div class="rounded-xl border theme-surface-soft p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <div class="text-sm font-medium theme-text-primary">启用状态</div>
+                    <div class="text-sm font-medium theme-text-primary">{{ t('personalCenter.apiPanel.statusLabel') }}</div>
                     <div class="mt-1 text-xs theme-text-muted">
-                      {{ credential.is_active ? '当前已启用，API 调用正常工作' : '当前已禁用，API 调用将被拒绝' }}
+                      {{ credential.is_active ? t('personalCenter.apiPanel.statusEnabled') : t('personalCenter.apiPanel.statusDisabled') }}
                     </div>
                   </div>
                   <button
@@ -189,9 +189,9 @@
                 @click.self="showConfirm = false"
               >
                 <div class="mx-4 w-full max-w-sm rounded-2xl border theme-panel-soft p-6 shadow-2xl">
-                  <h3 class="text-base font-bold theme-text-primary">确认重新生成</h3>
+                  <h3 class="text-base font-bold theme-text-primary">{{ t('personalCenter.apiPanel.regenerateTitle') }}</h3>
                   <p class="mt-2 text-sm theme-text-muted">
-                    重新生成 API Secret 后，旧的 Secret 将立即失效。所有使用旧 Secret 的接入方都需要更新配置。确定继续吗？
+                    {{ t('personalCenter.apiPanel.regenerateDesc') }}
                   </p>
                   <div class="mt-5 flex justify-end gap-3">
                     <button
@@ -199,7 +199,7 @@
                       class="inline-flex items-center rounded-xl border theme-btn-secondary px-4 py-2 text-sm font-semibold transition-colors"
                       @click="showConfirm = false"
                     >
-                      取消
+                      {{ t('personalCenter.apiPanel.cancel') }}
                     </button>
                     <button
                       type="button"
@@ -207,7 +207,7 @@
                       class="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                       @click="confirmRegenerate"
                     >
-                      {{ submitting ? '生成中...' : '确认重新生成' }}
+                      {{ submitting ? t('personalCenter.apiPanel.regenerating') : t('personalCenter.apiPanel.regenerateConfirm') }}
                     </button>
                   </div>
                 </div>
@@ -258,7 +258,17 @@ const loadCredential = async () => {
   panelAlert.value = null
   try {
     const response = await apiCredentialAPI.getMy()
-    credential.value = response.data.data || null
+    const data = response.data.data
+    // 后端返回 {status: "none"} 表示无凭证
+    if (!data || data.status === 'none') {
+      credential.value = null
+    } else {
+      // 将 api_secret_tail 映射为前端需要的 api_secret_masked 格式
+      if (data.api_secret_tail) {
+        data.api_secret_masked = '••••••••' + data.api_secret_tail
+      }
+      credential.value = data
+    }
   } catch (err: any) {
     // 404 or no credential is normal
     credential.value = null
@@ -274,13 +284,13 @@ const handleApply = async () => {
     await apiCredentialAPI.apply()
     panelAlert.value = {
       level: 'success',
-      message: '申请已提交，请等待审核。',
+      message: t('personalCenter.apiPanel.applySuccess'),
     }
     await loadCredential()
   } catch (err: any) {
     panelAlert.value = {
       level: 'error',
-      message: err?.message || '申请失败，请稍后重试。',
+      message: err?.message || t('personalCenter.apiPanel.applyFailed'),
     }
   } finally {
     submitting.value = false
@@ -305,12 +315,12 @@ const confirmRegenerate = async () => {
     await loadCredential()
     panelAlert.value = {
       level: 'success',
-      message: '新的 API Secret 已生成，请立即复制保存。',
+      message: t('personalCenter.apiPanel.regenerateSuccess'),
     }
   } catch (err: any) {
     panelAlert.value = {
       level: 'error',
-      message: err?.message || '重新生成失败，请稍后重试。',
+      message: err?.message || t('personalCenter.apiPanel.regenerateFailed'),
     }
   } finally {
     submitting.value = false
@@ -328,12 +338,12 @@ const handleToggleStatus = async () => {
     credential.value.is_active = newStatus
     panelAlert.value = {
       level: 'success',
-      message: newStatus ? 'API 已启用。' : 'API 已禁用。',
+      message: newStatus ? t('personalCenter.apiPanel.enabled') : t('personalCenter.apiPanel.disabled'),
     }
   } catch (err: any) {
     panelAlert.value = {
       level: 'error',
-      message: err?.message || '操作失败，请稍后重试。',
+      message: err?.message || t('personalCenter.apiPanel.toggleFailed'),
     }
   } finally {
     submitting.value = false
@@ -346,12 +356,12 @@ const copyToClipboard = async (text: string) => {
     await navigator.clipboard.writeText(text)
     panelAlert.value = {
       level: 'success',
-      message: '已复制到剪贴板。',
+      message: t('personalCenter.apiPanel.copied'),
     }
   } catch {
     panelAlert.value = {
       level: 'error',
-      message: '复制失败，请手动复制。',
+      message: t('personalCenter.apiPanel.copyFailed'),
     }
   }
 }
