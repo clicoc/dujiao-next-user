@@ -441,7 +441,7 @@ const guestAuth = ref({
 const guestAuthError = ref('')
 const pollTimer = ref<number | null>(null)
 const countdownTimer = ref<number | null>(null)
-const now = ref(Date.now())
+const now = ref(appStore.getServerTime())
 const copiedTimer = ref<number | null>(null)
 const redirectTimer = ref<number | null>(null)
 const walletLoading = ref(false)
@@ -640,7 +640,7 @@ const orderExpired = computed(() => {
   if (!order.value?.expires_at) return false
   const ts = new Date(order.value.expires_at).getTime()
   if (Number.isNaN(ts)) return false
-  return ts <= Date.now()
+  return ts <= appStore.getServerTime()
 })
 const orderCanceled = computed(() => order.value?.status === 'canceled')
 const paymentAlert = computed<PageAlert | null>(() => {
@@ -870,9 +870,9 @@ const debouncedLoadOrder = debounceAsync(loadOrder, 250)
 const startCountdown = () => {
   if (!expiresAtMs.value || countdownTimer.value) return
   if (order.value?.status !== 'pending_payment') return
-  now.value = Date.now()
+  now.value = appStore.getServerTime()
   countdownTimer.value = window.setInterval(() => {
-    now.value = Date.now()
+    now.value = appStore.getServerTime()
   }, 1000)
 }
 

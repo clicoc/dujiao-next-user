@@ -1,5 +1,6 @@
 import type { RouteLocationNormalizedLoaded, RouteLocationNormalized } from 'vue-router'
 import { affiliateAPI } from '../api'
+import { useAppStore } from '../stores/app'
 
 const AFFILIATE_STORAGE_KEY = 'dj_affiliate_attribution'
 const AFFILIATE_VISITOR_KEY = 'dj_affiliate_visitor_key'
@@ -26,7 +27,8 @@ const readAttribution = (): AffiliateAttribution | null => {
         const parsed = JSON.parse(raw) as Partial<AffiliateAttribution>
         const code = normalizeAffiliateCode(String(parsed.code || ''))
         const expiresAt = Number(parsed.expires_at || 0)
-        if (!code || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+        const appStore = useAppStore()
+        if (!code || !Number.isFinite(expiresAt) || expiresAt <= appStore.getServerTime()) {
             localStorage.removeItem(AFFILIATE_STORAGE_KEY)
             return null
         }
@@ -44,7 +46,7 @@ const writeAttribution = (code: string) => {
     if (typeof window === 'undefined') return
     const payload: AffiliateAttribution = {
         code,
-        expires_at: Date.now() + AFFILIATE_TTL_MS,
+        expires_at: useAppStore().getServerTime() + AFFILIATE_TTL_MS,
     }
     localStorage.setItem(AFFILIATE_STORAGE_KEY, JSON.stringify(payload))
 }

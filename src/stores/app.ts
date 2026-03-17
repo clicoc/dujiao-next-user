@@ -8,6 +8,8 @@ export const useAppStore = defineStore('app', () => {
     const locale = ref(localStorage.getItem('locale') || 'zh-CN')
     const config = ref<any>(null)
     const loading = ref(false)
+    // 服务器与客户端的时间偏移量（毫秒），serverTime = clientTime + offset
+    const serverTimeOffset = ref(0)
 
     // 设置语言
     const setLocale = (newLocale: string) => {
@@ -76,8 +78,16 @@ export const useAppStore = defineStore('app', () => {
         }
         loading.value = true
         try {
+            const requestTime = Date.now()
             const response = await configAPI.get()
             config.value = response.data.data
+            // 计算服务器与客户端的时间偏移量
+            if (config.value?.server_time) {
+                const responseTime = Date.now()
+                const roundTripTime = responseTime - requestTime
+                const estimatedServerNow = config.value.server_time + roundTripTime / 2
+                serverTimeOffset.value = estimatedServerNow - responseTime
+            }
             applySEO()
             applyCustomScripts(config.value?.scripts)
         } catch (error) {
@@ -87,12 +97,21 @@ export const useAppStore = defineStore('app', () => {
         }
     }
 
+    // 获取校正后的服务器当前时间（毫秒时间戳）
+    const getServerTime = () => Date.now() + serverTimeOffset.value
+
+    // 获取校正后的服务器当前 Date 对象
+    const getServerDate = () => new Date(getServerTime())
+
     return {
         locale,
         config,
         loading,
+        serverTimeOffset,
         setLocale,
         loadConfig,
-        applySEO
+        applySEO,
+        getServerTime,
+        getServerDate
     }
 })
