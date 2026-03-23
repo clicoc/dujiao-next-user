@@ -79,6 +79,20 @@
           </button>
         </div>
       </form>
+      <div v-if="selectedChannel" class="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
+        <div class="rounded-xl border theme-surface-soft p-4">
+          <div class="text-xs theme-text-muted">{{ t('payment.feeRateLabel') }}</div>
+          <div class="mt-1 font-semibold theme-text-primary">{{ selectedChannelFeeRateDisplay }}</div>
+        </div>
+        <div class="rounded-xl border theme-surface-soft p-4">
+          <div class="text-xs theme-text-muted">{{ t('payment.fixedFeeLabel') }}</div>
+          <div class="mt-1 font-semibold theme-text-primary">{{ selectedChannelFixedFeeDisplay }}</div>
+        </div>
+        <div class="rounded-xl border theme-surface-soft p-4">
+          <div class="text-xs theme-text-muted">{{ t('payment.feeAmountLabel') }}</div>
+          <div class="mt-1 font-semibold theme-text-primary">{{ selectedChannelFeeAmountDisplay }}</div>
+        </div>
+      </div>
       <p v-if="!hasChannels" class="mt-3 text-xs text-amber-600">
         {{ t('payment.channelEmpty') }}
       </p>
@@ -108,7 +122,7 @@
         {{ t('personalCenter.wallet.pendingHint') }}
       </div>
       <div class="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div v-if="qrImageUrl" class="rounded-xl border theme-surface-soft p-4">
+        <div v-if="showQRCode" class="rounded-xl border theme-surface-soft p-4">
           <div class="mb-3 text-sm font-semibold theme-text-primary">{{ t('payment.qrTitle') }}</div>
           <div class="flex items-center justify-center">
             <img :src="qrImageUrl" alt="Recharge QR" class="h-52 w-52 object-contain" />
@@ -116,11 +130,24 @@
           <div v-if="qrUsingPayLinkFallback" class="mt-3 text-xs theme-text-muted">
             {{ t('payment.qrFallbackHint') }}
           </div>
-          <div class="mt-3 text-xs theme-text-muted break-all">{{ qrDisplayContent }}</div>
         </div>
         <div class="rounded-xl border theme-surface-soft p-4">
           <div class="text-xs theme-text-muted">{{ t('personalCenter.wallet.paymentChannelLabel') }}</div>
           <div class="mt-1 text-sm font-semibold theme-text-primary">{{ currentChannelName }}</div>
+          <div class="mt-4 space-y-2 text-xs">
+            <div class="flex items-center justify-between gap-4">
+              <span class="theme-text-muted">{{ t('payment.feeRateLabel') }}</span>
+              <span class="font-medium theme-text-primary">{{ currentRechargeFeeRateDisplay }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <span class="theme-text-muted">{{ t('payment.fixedFeeLabel') }}</span>
+              <span class="font-medium theme-text-primary">{{ currentRechargeFixedFeeDisplay }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <span class="theme-text-muted">{{ t('payment.feeAmountLabel') }}</span>
+              <span class="font-medium theme-text-primary">{{ currentRechargeFeeAmountDisplay }}</span>
+            </div>
+          </div>
           <div class="mt-4 flex flex-wrap items-center gap-3">
             <button
               v-if="payLink"
@@ -225,15 +252,18 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { walletAPI } from '../../api'
 import { useAppStore } from '../../stores/app'
 import { useTelegramMiniAppStore } from '../../stores/telegramMiniApp'
 import { pageAlertClass, type PageAlert } from '../../utils/alerts'
-import { amountToCents } from '../../utils/money'
+import { amountToCents, basisPointsToPercent, calculateFeeCents, centsToAmount, rateToBasisPoints } from '../../utils/money'
 import QRCode from 'qrcode'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const appStore = useAppStore()
 const telegramMiniAppStore = useTelegramMiniAppStore()
 
@@ -250,6 +280,7 @@ const pagination = ref({
 })
 const walletAlert = ref<PageAlert | null>(null)
 const pollTimer = ref<number | null>(null)
+const restoringRecharge = ref(false)
 
 const rechargeForm = reactive({
   amount: '',
@@ -259,6 +290,49 @@ const rechargeForm = reactive({
 
 const currentRecharge = ref<any>(null)
 const currentRechargePayment = ref<any>(null)
+const rechargeReturnMarkers = ['epay_return', 'alipay_return', 'wechat_return', 'epusdt_return', 'tokenpay_return', 'okpay_return', 'pp_return', 'stripe_return']
+
+const routeQueryValueToString = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const text = String(item ?? '').trim()
+      if (text !== '') return text
+    }
+    return ''
+  }
+  return String(value ?? '').trim()
+}
+
+const readRouteQueryValue = (key: string): string => {
+  const normalizedKey = String(key || '').trim().toLowerCase()
+  if (normalizedKey === '') return ''
+
+  const query = route.query as Record<string, unknown>
+  const candidates = [key, normalizedKey, `amp;${key}`, `amp;${normalizedKey}`]
+  for (const candidate of candidates) {
+    const value = routeQueryValueToString(query[candidate])
+    if (value !== '') return value
+  }
+
+  for (const [rawKey, rawValue] of Object.entries(query)) {
+    const cleanedKey = String(rawKey || '').trim().toLowerCase().replace(/^(amp;)+/, '')
+    if (cleanedKey !== normalizedKey) continue
+    const value = routeQueryValueToString(rawValue)
+    if (value !== '') return value
+  }
+  return ''
+}
+
+const rechargeNoFromRoute = computed(() => readRouteQueryValue('recharge_no'))
+const hasRechargeReturnMarker = computed(() => {
+  if (rechargeReturnMarkers.some((marker) => readRouteQueryValue(marker).toLowerCase() === '1')) {
+    return true
+  }
+  if (readRouteQueryValue('token') !== '') return true
+  if (readRouteQueryValue('payer_id') !== '' || readRouteQueryValue('PayerID') !== '') return true
+  if (readRouteQueryValue('session_id') !== '') return true
+  return false
+})
 
 const channels = computed(() => {
   const list = appStore.config?.payment_channels
@@ -274,9 +348,12 @@ const channels = computed(() => {
     id: Number(channel.id),
     name: String(channel.name || channel.channel_type || channel.id),
     channel_type: String(channel.channel_type || ''),
+    fee_rate: String(channel.fee_rate ?? '0'),
+    fixed_fee: String(channel.fixed_fee ?? '0'),
   })).filter((channel: any) => Number.isFinite(channel.id) && channel.id > 0)
 })
 const hasChannels = computed(() => channels.value.length > 0)
+const selectedChannel = computed(() => channels.value.find((item: any) => item.id === rechargeForm.channelId) || null)
 
 const formatMoney = (amount?: string, currency?: string) => {
   if (amount === null || amount === undefined || amount === '') return '-'
@@ -285,6 +362,24 @@ const formatMoney = (amount?: string, currency?: string) => {
   }
   return `${amount} ${currency}`
 }
+
+const selectedChannelCurrency = computed(() => String(appStore.config?.currency || 'CNY'))
+const selectedChannelFeeRateDisplay = computed(() => {
+  const rate = rateToBasisPoints(selectedChannel.value?.fee_rate)
+  if (rate === null) return '0.00%'
+  return `${basisPointsToPercent(rate)}%`
+})
+const selectedChannelFixedFeeDisplay = computed(() => {
+  return formatMoney(String(selectedChannel.value?.fixed_fee ?? '0.00'), selectedChannelCurrency.value)
+})
+const selectedChannelFeeAmountDisplay = computed(() => {
+  const amountCents = amountToCents(rechargeForm.amount)
+  if (amountCents === null || amountCents <= 0) return formatMoney('0.00', selectedChannelCurrency.value)
+  const rate = rateToBasisPoints(selectedChannel.value?.fee_rate) || 0
+  const fixedFeeCents = amountToCents(selectedChannel.value?.fixed_fee) || 0
+  const variableFeeCents = calculateFeeCents(amountCents, rate) || 0
+  return formatMoney(centsToAmount(variableFeeCents + fixedFeeCents), selectedChannelCurrency.value)
+})
 
 const balanceDisplay = computed(() => formatMoney(wallet.value?.balance, String(appStore.config?.currency || 'CNY')))
 const payLink = computed(() => String(currentRechargePayment.value?.pay_url || '').trim())
@@ -299,6 +394,7 @@ const qrFallbackContent = computed(() => {
 })
 const qrDisplayContent = computed(() => qrCodeContent.value || qrFallbackContent.value)
 const qrUsingPayLinkFallback = computed(() => Boolean(!qrCodeContent.value && qrFallbackContent.value))
+const showQRCode = computed(() => interactionMode.value !== 'redirect' && Boolean(qrImageUrl.value))
 const qrImageUrl = ref('')
 const qrRenderVersion = ref(0)
 
@@ -343,6 +439,19 @@ const currentChannelName = computed(() => {
   const channel = channels.value.find((item: any) => item.id === channelID)
   if (channel) return channel.name
   return String(currentRechargePayment.value?.channel_type || '-')
+})
+const currentRechargeFeeRateDisplay = computed(() => {
+  const rate = rateToBasisPoints(currentRecharge.value?.fee_rate ?? currentRechargePayment.value?.fee_rate)
+  if (rate === null) return '0.00%'
+  return `${basisPointsToPercent(rate)}%`
+})
+const currentRechargeFixedFeeDisplay = computed(() => {
+  const fixedFee = currentRechargePayment.value?.fixed_fee ?? '0.00'
+  return formatMoney(String(fixedFee), String(currentRecharge.value?.currency || currentRechargePayment.value?.currency || selectedChannelCurrency.value))
+})
+const currentRechargeFeeAmountDisplay = computed(() => {
+  const feeAmount = currentRecharge.value?.fee_amount ?? currentRechargePayment.value?.fee_amount ?? '0.00'
+  return formatMoney(String(feeAmount), String(currentRecharge.value?.currency || currentRechargePayment.value?.currency || selectedChannelCurrency.value))
 })
 
 const formatDate = (raw?: string) => {
@@ -435,6 +544,65 @@ const syncRechargePayload = (payload: any) => {
   }
 }
 
+const buildRechargeRouteQuery = () => {
+  const query: Record<string, string> = {}
+  const rechargeNo = String(rechargeNoFromRoute.value || currentRecharge.value?.recharge_no || '').trim()
+  if (rechargeNo !== '') {
+    query.recharge_no = rechargeNo
+  }
+  return query
+}
+
+const shouldCaptureRechargeReturn = () => {
+  const providerType = String(currentRechargePayment.value?.provider_type || '').toLowerCase()
+  const channelType = String(currentRechargePayment.value?.channel_type || '').toLowerCase()
+  if (providerType === 'official' && channelType === 'paypal') {
+    return readRouteQueryValue('pp_return').toLowerCase() === '1'
+      || readRouteQueryValue('token') !== ''
+      || readRouteQueryValue('payer_id') !== ''
+      || readRouteQueryValue('PayerID') !== ''
+  }
+  if (providerType === 'official' && channelType === 'stripe') {
+    return readRouteQueryValue('stripe_return').toLowerCase() === '1'
+      || readRouteQueryValue('session_id') !== ''
+  }
+  return false
+}
+
+const restoreRechargeFromRoute = async () => {
+  const rechargeNo = String(rechargeNoFromRoute.value || '').trim()
+  if (rechargeNo === '' || restoringRecharge.value) return
+
+  restoringRecharge.value = true
+  try {
+    const response = await walletAPI.rechargeDetail(rechargeNo)
+    const payload = response.data.data || {}
+    syncRechargePayload(payload)
+
+    if (shouldCaptureRechargeReturn()) {
+      await checkRechargePayment()
+    } else if (hasRechargeReturnMarker.value) {
+      await refreshRechargeStatus(true)
+    } else if (isRechargePending.value) {
+      startPolling()
+    }
+
+    if (hasRechargeReturnMarker.value) {
+      await router.replace({
+        path: route.path,
+        query: buildRechargeRouteQuery(),
+      })
+    }
+  } catch (err: any) {
+    walletAlert.value = {
+      level: 'error',
+      message: err?.message || t('personalCenter.wallet.errors.rechargeQueryFailed'),
+    }
+  } finally {
+    restoringRecharge.value = false
+  }
+}
+
 const initialize = async () => {
   walletAlert.value = null
   try {
@@ -445,6 +613,7 @@ const initialize = async () => {
       loadWallet(),
       loadTransactions(),
     ])
+    await restoreRechargeFromRoute()
   } catch (err: any) {
     walletAlert.value = {
       level: 'error',
@@ -621,8 +790,16 @@ watch(
   { immediate: true }
 )
 
+watch(
+  () => route.fullPath,
+  () => {
+    if (!rechargeNoFromRoute.value) return
+    void restoreRechargeFromRoute()
+  }
+)
+
 onMounted(() => {
-  initialize()
+  void initialize()
 })
 
 onUnmounted(() => {

@@ -528,6 +528,10 @@ const readRouteQueryFlag = (key: string): boolean => {
   return value === '1' || value === 'true' || value === 'yes'
 }
 
+const paymentReturnMarkers = ['epay_return', 'alipay_return', 'wechat_return', 'epusdt_return', 'tokenpay_return', 'okpay_return', 'pp_return', 'stripe_return']
+const rechargeBizType = computed(() => readRouteQueryValue('biz_type').toLowerCase())
+const isRechargeReturn = computed(() => rechargeBizType.value === 'recharge')
+const rechargeNoQuery = computed(() => readRouteQueryValue('recharge_no'))
 const isGuest = computed(() => readRouteQueryFlag('guest'))
 const orderNoQuery = computed(() => {
   const orderNo = readRouteQueryValue('order_no')
@@ -1006,6 +1010,36 @@ const buildPayRouteQuery = () => {
   return query
 }
 
+const buildRechargeReturnRouteQuery = () => {
+  const query: Record<string, string> = {}
+  const resolvedRechargeNo = String(rechargeNoQuery.value || '').trim()
+  if (resolvedRechargeNo !== '') {
+    query.recharge_no = resolvedRechargeNo
+  }
+  for (const marker of paymentReturnMarkers) {
+    const value = readRouteQueryValue(marker)
+    if (value !== '') {
+      query[marker] = value
+    }
+  }
+  for (const key of ['token', 'payer_id', 'PayerID', 'session_id']) {
+    const value = readRouteQueryValue(key)
+    if (value !== '') {
+      query[key] = value
+    }
+  }
+  return query
+}
+
+const redirectToWalletRecharge = async () => {
+  const resolvedRechargeNo = String(rechargeNoQuery.value || '').trim()
+  if (resolvedRechargeNo === '') return
+  await router.replace({
+    name: 'personal-center-wallet',
+    query: buildRechargeReturnRouteQuery(),
+  })
+}
+
 const capturePaypalIfNeeded = async () => {
   if (capturing.value) return
   if (!paymentResult.value?.payment_id) return
@@ -1085,8 +1119,7 @@ const captureStripeIfNeeded = async () => {
 
 const syncPaymentReturnIfNeeded = async () => {
   // 支持所有支付方式的回调同步跳转
-  const returnMarkers = ['epay_return', 'alipay_return', 'wechat_return', 'epusdt_return', 'tokenpay_return']
-  const hasReturn = returnMarkers.some(marker => readRouteQueryValue(marker).toLowerCase() === '1')
+  const hasReturn = paymentReturnMarkers.some(marker => readRouteQueryValue(marker).toLowerCase() === '1')
 
   if (!hasReturn) return
   if (!orderNoQuery.value) return
@@ -1334,6 +1367,10 @@ const formatChannelFixedFee = (channel?: any) => {
 }
 
 onMounted(() => {
+  if (isRechargeReturn.value && rechargeNoQuery.value) {
+    void redirectToWalletRecharge()
+    return
+  }
   if (!orderNoQuery.value) return
   const saved = localStorage.getItem('guest_order_auth')
   const savedAuth = saved ? JSON.parse(saved) : {}
