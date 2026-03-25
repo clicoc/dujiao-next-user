@@ -46,12 +46,17 @@
         </span>
       </div>
 
-      <!-- Row 2: Badges (same as card) -->
+      <!-- Row 2: Badges -->
       <div class="flex flex-wrap items-center gap-1">
-        <!-- Mobile: fulfillment only -->
+        <!-- Mobile: fulfillment + stock warning -->
         <span class="sm:hidden theme-badge text-[10px]"
           :class="product.fulfillment_type === 'auto' ? 'theme-badge-info' : 'theme-badge-neutral'">
           {{ getFulfillmentTypeLabel(product.fulfillment_type) }}
+        </span>
+        <span v-if="product.stock_status === 'out_of_stock' || product.stock_status === 'low_stock'"
+          class="sm:hidden theme-badge text-[10px]"
+          :class="getStockBadgeClass(product.stock_status)">
+          {{ getStockStatusLabel(product) }}
         </span>
 
         <!-- Desktop: all badges -->
@@ -79,7 +84,7 @@
             {{ formatPrice(getPromotionPriceAmount(product), siteCurrency) }}
           </span>
           <div class="flex items-center gap-1">
-            <span class="hidden sm:inline text-[10px] theme-text-muted line-through">{{ formatPrice(product.price_amount, siteCurrency) }}</span>
+            <span class="text-[10px] theme-text-muted line-through">{{ formatPrice(product.price_amount, siteCurrency) }}</span>
             <span class="theme-badge theme-badge-danger text-[9px] px-1 py-0 leading-tight">{{ t('products.promotionTag') }}</span>
           </div>
         </div>
