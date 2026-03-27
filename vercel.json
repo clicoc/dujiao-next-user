@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://p01--dujiao-next--cd2v6fz88v25.code.run/api/:path*"
-    }
-  ]
-}
