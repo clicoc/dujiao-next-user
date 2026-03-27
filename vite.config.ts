@@ -1,19 +1,21 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 const cfAsyncModuleScriptPlugin = () => ({
   name: 'cfasync-module-script',
   transformIndexHtml(html: string) {
     return html.replace(
       /<script\s+type="module"(?![^>]*data-cfasync)/g,
       '<script data-cfasync="false" type="module"',
-    )
+    );
   },
 })
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), cfAsyncModuleScriptPlugin()],
+  plugins: [vue(), cfAsyncModuleScriptPlugin(), cloudflare()],
   server: {
     host: '0.0.0.0', // 监听所有网络接口
     port: 5173,
