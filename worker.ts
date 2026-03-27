@@ -8,7 +8,7 @@ export default {
       
       // 创建新 Header，避免直接修改原始 request.headers
       const newHeaders = new Headers(request.headers);
-      newHeaders.set('Host', 'end.cika.eu.org'); // 显式设置目标 Host
+      newHeaders.set('Host', 'end.teka.eu.org'); // 显式设置目标 Host
 
       const newRequest = new Request(targetUrl, {
         method: request.method,
