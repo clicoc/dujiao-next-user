@@ -2,22 +2,28 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // 只要路径是以 /api 开头的，就转交给你的后端
     if (url.pathname.startsWith('/api')) {
-      // 这里的地址就是你要设置的目标
+      // 这里的地址建议手动在浏览器访问一下，确保它是通的
       const targetUrl = 'https://end.cika.eu.org' + url.pathname + url.search;
       
+      // 创建新 Header，避免直接修改原始 request.headers
+      const newHeaders = new Headers(request.headers);
+      newHeaders.set('Host', 'end.cika.eu.org'); // 显式设置目标 Host
+
       const newRequest = new Request(targetUrl, {
         method: request.method,
-        headers: request.headers,
+        headers: newHeaders,
         body: request.body,
         redirect: 'manual'
       });
 
-      return fetch(newRequest);
+      try {
+        return await fetch(newRequest);
+      } catch (e) {
+        return new Response('Gateway Error: ' + e.message, { status: 530 });
+      }
     }
 
-    // 其他静态资源（图片、JS、HTML）由 Cloudflare 正常提供
     return env.ASSETS.fetch(request);
   }
 };
