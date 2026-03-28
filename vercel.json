@@ -1,6 +1,17 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://end.teka.eu.org/api/:path*" },
-    { "source": "/(.*)", "destination": "/" } 
+    {
+      "source": "/api/:path*",
+      "destination": "https://end.cika.eu.org/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        // 开启边缘缓存，让 Vercel 节点直接返回数据，不打扰后端
+        { "key": "Cache-Control", "value": "s-maxage=10, stale-while-revalidate=50" }
+      ]
+    }
   ]
 }
