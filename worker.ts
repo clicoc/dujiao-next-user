@@ -40,7 +40,15 @@ export default {
       }
     }
 
-    // 静态资源回退
-    return env.ASSETS.fetch(request);
+    // 静态资源处理
+    const response = await env.ASSETS.fetch(request);
+
+    // 如果找不到文件 (404) 且不是 API 请求，就返回 index.html
+    if (response.status === 404 && !url.pathname.startsWith('/api')) {
+      const indexRequest = new Request(new URL('/index.html', request.url));
+      return env.ASSETS.fetch(indexRequest);
+    }
+
+    return response;
   }
 };
