@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://end.cika.eu.org/api/:path*"
+      "destination": "https://end.teka.eu.org/api/:path*"
     },
     {
       "source": "/(.*)",
