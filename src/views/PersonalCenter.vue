@@ -130,7 +130,7 @@
                   <span class="inline-flex items-center gap-1.5 theme-badge theme-badge-accent rounded-full px-3 py-1 text-xs font-semibold">
                     {{ t('personalCenter.memberLevel.discountRate') }}
                     {{ userProfileStore.currentLevel && userProfileStore.currentLevel.discount_rate < 100
-                      ? t('personalCenter.memberLevel.discountOff', { n: userProfileStore.currentLevel.discount_rate })
+                      ? t('personalCenter.memberLevel.discountOff', { n: userProfileStore.currentLevel.discount_rate / 10 })
                       : t('personalCenter.memberLevel.noDiscount')
                     }}
                   </span>
@@ -156,7 +156,7 @@
                       <div class="mt-0.5 flex items-center gap-2">
                         <span class="truncate text-sm font-bold theme-text-secondary">{{ levelName(userProfileStore.nextLevel) }}</span>
                         <span v-if="userProfileStore.nextLevel.discount_rate < 100" class="shrink-0 text-xs font-medium theme-text-accent">
-                          {{ t('personalCenter.memberLevel.discountOff', { n: userProfileStore.nextLevel.discount_rate }) }}
+                          {{ t('personalCenter.memberLevel.discountOff', { n: userProfileStore.nextLevel.discount_rate / 10 }) }}
                         </span>
                       </div>
                     </div>

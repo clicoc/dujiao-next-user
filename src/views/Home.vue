@@ -315,6 +315,7 @@
       </div>
     </section>
 
+    <template v-if="latestSectionVisible">
     <hr class="theme-section-divider mx-4 md:mx-auto md:max-w-6xl" />
 
     <section class="relative z-10 py-12">
@@ -325,8 +326,8 @@
             <p class="mt-1 text-sm theme-text-secondary">{{ t('home.latest.description') }}</p>
           </div>
           <div class="flex items-center gap-3 text-sm">
-            <router-link to="/blog" class="theme-link-muted">{{ t('nav.blog') }}</router-link>
-            <router-link to="/notice" class="theme-link-muted">{{ t('nav.notice') }}</router-link>
+            <router-link v-if="blogEnabled" to="/blog" class="theme-link-muted">{{ t('nav.blog') }}</router-link>
+            <router-link v-if="noticeEnabled" to="/notice" class="theme-link-muted">{{ t('nav.notice') }}</router-link>
           </div>
         </div>
 
@@ -348,6 +349,7 @@
         </div>
       </div>
     </section>
+    </template>
     </template>
 
     <ProductQuickBuy
@@ -382,6 +384,10 @@ const { getLocalizedText } = useLocalized()
 const appStore = useAppStore()
 
 const templateMode = computed(() => appStore.config?.template_mode || 'card')
+const navBuiltin = computed(() => (appStore.config?.nav_config as { builtin?: Record<string, boolean> } | undefined)?.builtin)
+const blogEnabled = computed(() => navBuiltin.value?.blog !== false)
+const noticeEnabled = computed(() => navBuiltin.value?.notice !== false)
+const latestSectionVisible = computed(() => blogEnabled.value || noticeEnabled.value)
 
 // ==================== Shared State ====================
 const products = ref<any[]>([])
@@ -464,8 +470,12 @@ const loadFeaturedProducts = async () => {
 }
 
 const loadLatestPosts = async () => {
+  if (!latestSectionVisible.value) return
   try {
-    const response = await postAPI.list({ page: 1, page_size: 3 })
+    const params: Record<string, unknown> = { page: 1, page_size: 3 }
+    if (blogEnabled.value && !noticeEnabled.value) params.type = 'blog'
+    if (!blogEnabled.value && noticeEnabled.value) params.type = 'notice'
+    const response = await postAPI.list(params)
     posts.value = response.data.data || []
   } catch (error) {
     console.error('Failed to load posts:', error)

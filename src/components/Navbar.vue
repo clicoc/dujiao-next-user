@@ -11,14 +11,23 @@
 
       <!-- Desktop Menu -->
       <div class="hidden md:flex items-center space-x-1">
-        <router-link v-for="item in menuItems" :key="item.path" :to="item.path"
-          class="theme-nav-link text-sm relative group overflow-hidden flex items-center gap-1.5"
-          active-class="theme-nav-link-active">
-          <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" :d="item.icon" />
-          </svg>
-          <span class="relative z-10">{{ t(item.label) }}</span>
-        </router-link>
+        <template v-for="item in menuItems" :key="item.key">
+          <router-link v-if="item.type === 'route'" :to="item.path"
+            class="theme-nav-link text-sm relative group overflow-hidden flex items-center gap-1.5"
+            active-class="theme-nav-link-active">
+            <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" :d="item.icon" />
+            </svg>
+            <span class="relative z-10">{{ item.label.startsWith('nav.') ? t(item.label) : item.label }}</span>
+          </router-link>
+          <a v-else :href="item.path" :target="item.target" rel="noopener noreferrer"
+            class="theme-nav-link text-sm relative group overflow-hidden flex items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" :d="item.icon" />
+            </svg>
+            <span class="relative z-10">{{ item.label }}</span>
+          </a>
+        </template>
       </div>
 
       <!-- Right Side Actions -->
@@ -149,15 +158,24 @@
             </button>
           </div>
 
-          <!-- Navigation items not in bottom nav: Blog, Notice, About -->
-          <router-link v-for="item in mobileDrawerItems" :key="item.path" :to="item.path" @click="showMobileMenu = false"
-            class="block w-full text-left px-4 py-3 rounded-xl theme-nav-link text-sm min-h-[44px] flex items-center gap-3"
-            active-class="theme-nav-link-active">
-            <svg class="w-5 h-5 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" :d="item.icon" />
-            </svg>
-            {{ t(item.label) }}
-          </router-link>
+          <!-- Navigation items not in bottom nav -->
+          <template v-for="item in mobileDrawerItems" :key="item.key">
+            <router-link v-if="item.type === 'route'" :to="item.path" @click="showMobileMenu = false"
+              class="block w-full text-left px-4 py-3 rounded-xl theme-nav-link text-sm min-h-[44px] flex items-center gap-3"
+              active-class="theme-nav-link-active">
+              <svg class="w-5 h-5 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" :d="item.icon" />
+              </svg>
+              {{ item.label.startsWith('nav.') ? t(item.label) : item.label }}
+            </router-link>
+            <a v-else :href="item.path" :target="item.target" rel="noopener noreferrer" @click="showMobileMenu = false"
+              class="block w-full text-left px-4 py-3 rounded-xl theme-nav-link text-sm min-h-[44px] flex items-center gap-3">
+              <svg class="w-5 h-5 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" :d="item.icon" />
+              </svg>
+              {{ item.label }}
+            </a>
+          </template>
 
           <!-- Guest orders (not in bottom nav) -->
           <router-link v-if="!userAuthStore.isAuthenticated" to="/guest/orders" @click="showMobileMenu = false"
@@ -221,24 +239,101 @@ const cartBounce = ref(false)
 
 const isListMode = computed(() => appStore.config?.template_mode === 'list')
 
-const allMenuItems = [
-  { path: '/', label: 'nav.home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
-  { path: '/products', label: 'nav.products', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
-  { path: '/blog', label: 'nav.blog', icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2' },
-  { path: '/notice', label: 'nav.notice', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
-  { path: '/about', label: 'nav.about', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-]
+// 内置导航项定义
+const builtinNavDefs: Record<string, { path: string; label: string; icon: string }> = {
+  blog: { path: '/blog', label: 'nav.blog', icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2' },
+  notice: { path: '/notice', label: 'nav.notice', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
+  about: { path: '/about', label: 'nav.about', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+}
 
-const menuItems = computed(() =>
-  isListMode.value ? allMenuItems.filter(item => item.path !== '/products') : allMenuItems
-)
+interface NavItem {
+  key: string
+  path: string
+  label: string
+  icon: string
+  type: 'route' | 'link'
+  target: string
+}
+
+const navConfig = computed(() => appStore.config?.nav_config as {
+  builtin?: Record<string, boolean>
+  custom_items?: Array<{
+    id: number; title: Record<string, string>; link_type: string
+    url: string; target: string; sort_order: number; enabled: boolean; icon?: string
+  }>
+} | undefined)
+
+const getCustomItemTitle = (item: { title?: Record<string, string> }): string => {
+  const titles = item.title || {}
+  return titles[locale.value] || titles['zh-CN'] || titles['en-US'] || ''
+}
+
+const presetIcons: Record<string, string> = {
+  link: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
+  document: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  globe: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9',
+  star: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
+  heart: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+  chat: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+  gift: 'M12 8v13m0-13V6a4 4 0 00-4-4 4 4 0 00-4 4v2h8zm0 0V6a4 4 0 014-4 4 4 0 014 4v2h-8zM5 8h14a1 1 0 011 1v3H4V9a1 1 0 011-1zm0 4h14v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7z',
+  lightning: 'M13 10V3L4 14h7v7l9-11h-7z',
+  shield: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+  book: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+  code: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4',
+  phone: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z',
+  map: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z',
+  music: 'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3',
+  camera: 'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z M15 13a3 3 0 11-6 0 3 3 0 016 0z',
+}
+const defaultIcon = presetIcons.link
+
+const buildCustomNavItems = (): NavItem[] => {
+  const items = navConfig.value?.custom_items
+  if (!Array.isArray(items)) return []
+  return items
+    .filter((item) => item.enabled)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    .map((item) => {
+      const icon = (presetIcons[item.icon as string] || defaultIcon) as string
+      return {
+        key: `custom-${item.id}`,
+        path: item.url || '',
+        label: getCustomItemTitle(item),
+        icon,
+        type: item.link_type === 'external' ? 'link' as const : 'route' as const,
+        target: item.target || '_self',
+      }
+    })
+    .filter((item) => item.label && item.path)
+}
+
+const buildBuiltinNavItems = (): NavItem[] => {
+  const builtin = navConfig.value?.builtin
+  const result: NavItem[] = []
+  for (const [key, def] of Object.entries(builtinNavDefs)) {
+    if (builtin && builtin[key] === false) continue
+    result.push({ key, path: def.path, label: def.label, icon: def.icon, type: 'route', target: '_self' })
+  }
+  return result
+}
+
+const menuItems = computed<NavItem[]>(() => {
+  const items: NavItem[] = [
+    { key: 'home', path: '/', label: 'nav.home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1', type: 'route', target: '_self' },
+  ]
+  if (!isListMode.value) {
+    items.push({ key: 'products', path: '/products', label: 'nav.products', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z', type: 'route', target: '_self' })
+  }
+  items.push(...buildBuiltinNavItems())
+  items.push(...buildCustomNavItems())
+  return items
+})
 
 // Mobile drawer only shows items NOT in the bottom nav (Home, Products, Cart, Me are in bottom nav)
-const mobileDrawerItems = [
-  { path: '/blog', label: 'nav.blog', icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2' },
-  { path: '/notice', label: 'nav.notice', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
-  { path: '/about', label: 'nav.about', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-]
+const mobileDrawerItems = computed<NavItem[]>(() => {
+  const items: NavItem[] = [...buildBuiltinNavItems(), ...buildCustomNavItems()]
+  return items
+})
 
 const languages = [
   { code: 'zh-CN', name: '简体中文' },
