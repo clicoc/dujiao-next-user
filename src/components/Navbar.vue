@@ -293,14 +293,17 @@ const buildCustomNavItems = (): NavItem[] => {
   return items
     .filter((item) => item.enabled)
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((item) => ({
-      key: `custom-${item.id}`,
-      path: item.url || '',
-      label: getCustomItemTitle(item),
-      icon: presetIcons[item.icon as string] || defaultIcon,
-      type: item.link_type === 'external' ? 'link' as const : 'route' as const,
-      target: item.target || '_self',
-    }))
+    .map((item) => {
+      const icon = (presetIcons[item.icon as string] || defaultIcon) as string
+      return {
+        key: `custom-${item.id}`,
+        path: item.url || '',
+        label: getCustomItemTitle(item),
+        icon,
+        type: item.link_type === 'external' ? 'link' as const : 'route' as const,
+        target: item.target || '_self',
+      }
+    })
     .filter((item) => item.label && item.path)
 }
 
