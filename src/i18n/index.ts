@@ -833,6 +833,10 @@ const messages = {
             },
             fulfillmentCopy: '复制内容',
             fulfillmentCopied: '已复制',
+            fulfillmentDownload: '下载交付内容',
+            fulfillmentTotalLines: '共 {count} 条交付内容',
+            fulfillmentDownloading: '下载中...',
+            fulfillmentTruncatedHint: '当前仅显示前 100 条预览，请下载获取完整交付内容',
         },
         guestOrders: {
             title: '游客订单查询',
@@ -1780,6 +1784,10 @@ const messages = {
             },
             fulfillmentCopy: '複製內容',
             fulfillmentCopied: '已複製',
+            fulfillmentDownload: '下載交付內容',
+            fulfillmentTotalLines: '共 {count} 條交付內容',
+            fulfillmentDownloading: '下載中...',
+            fulfillmentTruncatedHint: '當前僅顯示前 100 條預覽，請下載獲取完整交付內容',
         },
         guestOrders: {
             title: '遊客訂單查詢',
@@ -2688,6 +2696,10 @@ const messages = {
             },
             fulfillmentCopy: 'Copy',
             fulfillmentCopied: 'Copied',
+            fulfillmentDownload: 'Download',
+            fulfillmentTotalLines: '{count} items in total',
+            fulfillmentDownloading: 'Downloading...',
+            fulfillmentTruncatedHint: 'Showing first 100 items only. Please download for full content.',
         },
         guestOrders: {
             title: 'Guest Order Lookup',

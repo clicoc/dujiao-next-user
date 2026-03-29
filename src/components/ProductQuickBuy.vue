@@ -54,7 +54,7 @@
             <h2 class="text-sm font-semibold theme-text-primary">{{ t('quickBuy.title') }}</h2>
             <button
               type="button"
-              class="p-1.5 -mr-1 rounded-lg theme-text-muted hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+              class="p-1.5 -mr-1 rounded-lg theme-text-muted hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
               @click="close"
             >
               <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -144,7 +144,7 @@
               <!-- Mobile close -->
               <button
                 type="button"
-                class="md:hidden self-start -mr-1 p-1.5 rounded-lg theme-text-muted hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                class="md:hidden self-start -mr-1 p-1.5 rounded-lg theme-text-muted hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 @click="close"
               >
                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -194,7 +194,7 @@
                     normalizeSkuId(sku.id) === selectedSkuId
                       ? 'theme-selected-surface ring-1 ring-primary/30 font-semibold'
                       : 'theme-btn-secondary font-medium',
-                    isSkuPurchasable(sku) ? '' : 'cursor-not-allowed opacity-45 border-dashed',
+                    isSkuPurchasable(sku) ? 'cursor-pointer' : 'cursor-not-allowed opacity-45 border-dashed',
                   ]"
                   :disabled="!isSkuPurchasable(sku)"
                   @click="selectedSkuId = normalizeSkuId(sku.id)"
@@ -229,7 +229,7 @@
               <div class="flex items-center rounded-lg border theme-border overflow-hidden">
                 <button
                   type="button"
-                  class="w-9 h-9 flex items-center justify-center theme-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 transition-colors disabled:opacity-30"
+                  class="w-9 h-9 flex items-center justify-center theme-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                   :disabled="quantity <= 1"
                   @click="quantity = Math.max(1, quantity - 1)"
                 >
@@ -247,7 +247,7 @@
                 />
                 <button
                   type="button"
-                  class="w-9 h-9 flex items-center justify-center theme-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 transition-colors disabled:opacity-30"
+                  class="w-9 h-9 flex items-center justify-center theme-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                   :disabled="effectiveLimit !== null && quantity >= effectiveLimit"
                   @click="quantity = quantity + 1"
                 >
@@ -269,14 +269,14 @@
             <button
               v-if="requiresLogin"
               @click="goLogin"
-              class="w-full py-3 theme-btn-primary font-semibold rounded-xl min-h-[44px] text-sm"
+              class="w-full py-3 theme-btn-primary font-semibold rounded-xl min-h-[44px] text-sm cursor-pointer"
             >
               {{ t('quickBuy.loginToBuy') }}
             </button>
             <div v-else-if="isSoldOut(product)" class="flex gap-3">
               <button
                 @click="goToDetail"
-                class="flex-1 py-3 border theme-btn-secondary font-semibold rounded-xl min-h-[44px] text-sm"
+                class="flex-1 py-3 border theme-btn-secondary font-semibold rounded-xl min-h-[44px] text-sm cursor-pointer"
               >
                 {{ t('quickBuy.viewDetail') }}
               </button>
@@ -285,7 +285,7 @@
               <button
                 @click="handleAddToCart"
                 :disabled="!canPurchase"
-                class="flex-1 py-3 border theme-btn-secondary font-semibold rounded-xl disabled:cursor-not-allowed disabled:opacity-40 min-h-[44px] text-sm flex items-center justify-center gap-1.5"
+                class="flex-1 py-3 border theme-btn-secondary font-semibold rounded-xl cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 min-h-[44px] text-sm flex items-center justify-center gap-1.5"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
@@ -295,7 +295,7 @@
               <button
                 @click="handleBuyNow"
                 :disabled="!canPurchase"
-                class="flex-1 py-3 theme-btn-primary font-semibold rounded-xl disabled:cursor-not-allowed disabled:opacity-40 min-h-[44px] text-sm"
+                class="flex-1 py-3 theme-btn-primary font-semibold rounded-xl cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 min-h-[44px] text-sm"
               >
                 {{ t('quickBuy.buyNow') }}
               </button>

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group relative theme-panel rounded-2xl border transition-all overflow-hidden flex flex-col h-full theme-slide-up"
+    class="group relative theme-panel rounded-2xl border transition-all overflow-hidden flex flex-col h-full theme-slide-up cursor-pointer"
     :class="isSoldOut(product)
       ? 'opacity-85 grayscale-[0.25] saturate-50 border-rose-300/60 dark:border-rose-900/40 hover:-translate-y-0 hover:shadow-none hover:border-rose-300/60 dark:hover:border-rose-900/40'
       : 'theme-card-interactive'"

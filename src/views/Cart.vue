@@ -114,7 +114,7 @@
                   </div>
                   <button
                     @click="cartStore.removeItem(item.productId, item.skuId)"
-                    class="text-sm theme-link-muted transition-colors hover:text-red-500 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    class="text-sm theme-link-muted transition-colors hover:text-red-500 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
                   >
                     <svg class="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -128,7 +128,7 @@
                     <button
                       @click="updateQty(item, item.quantity - 1)"
                       :disabled="item.quantity <= 1"
-                      class="h-10 w-10 rounded-lg border theme-btn-secondary disabled:cursor-not-allowed disabled:opacity-40 flex items-center justify-center text-base font-medium"
+                      class="h-10 w-10 rounded-lg border theme-btn-secondary cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 flex items-center justify-center text-base font-medium"
                     >
                       -
                     </button>
@@ -145,7 +145,7 @@
                     <button
                       @click="updateQty(item, item.quantity + 1)"
                       :disabled="item.quantity >= itemMaxQuantity(item)"
-                      class="h-10 w-10 rounded-lg border theme-btn-secondary disabled:cursor-not-allowed disabled:opacity-40 flex items-center justify-center text-base font-medium"
+                      class="h-10 w-10 rounded-lg border theme-btn-secondary cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 flex items-center justify-center text-base font-medium"
                     >
                       +
                     </button>

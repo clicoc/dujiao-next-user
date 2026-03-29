@@ -321,11 +321,11 @@
                   </button>
                   <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button @click="addToCart" :disabled="!canPurchase"
-                      class="px-6 py-4 border theme-btn-secondary font-bold rounded-xl disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px]">
+                      class="px-6 py-4 border theme-btn-secondary font-bold rounded-xl cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px]">
                       {{ t('productDetail.addToCart') }}
                     </button>
                     <button @click="buyNow" :disabled="!canPurchase"
-                      class="px-6 py-4 theme-btn-primary font-bold rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px]">
+                      class="px-6 py-4 theme-btn-primary font-bold rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px]">
                       {{ t('productDetail.buyNow') }}
                     </button>
                   </div>
@@ -396,11 +396,11 @@
               </button>
               <template v-else>
                 <button @click="addToCart" :disabled="!canPurchase"
-                  class="px-4 py-3 border theme-btn-secondary font-bold rounded-xl text-sm disabled:opacity-50 min-h-[44px]">
+                  class="px-4 py-3 border theme-btn-secondary font-bold rounded-xl text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]">
                   {{ t('productDetail.addToCart') }}
                 </button>
                 <button @click="buyNow" :disabled="!canPurchase"
-                  class="px-5 py-3 theme-btn-primary font-bold rounded-xl text-sm disabled:opacity-50 min-h-[44px]">
+                  class="px-5 py-3 theme-btn-primary font-bold rounded-xl text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]">
                   {{ t('productDetail.buyNow') }}
                 </button>
               </template>

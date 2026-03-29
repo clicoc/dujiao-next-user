@@ -213,7 +213,7 @@
             <Transition name="fade">
               <div
                 v-if="showConfirm"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm cursor-pointer"
                 @click.self="showConfirm = false"
               >
                 <div class="mx-4 w-full max-w-sm rounded-2xl border theme-panel-soft p-6 shadow-2xl">

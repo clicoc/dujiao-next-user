@@ -18,7 +18,7 @@
     leave-active-class="transition duration-200 ease-in"
     leave-from-class="opacity-100"
     leave-to-class="opacity-0">
-    <div v-if="showDrawer" class="lg:hidden fixed inset-0 z-40 bg-black/50"
+    <div v-if="showDrawer" class="lg:hidden fixed inset-0 z-40 bg-black/50 cursor-pointer"
       @click="$emit('update:showDrawer', false)" style="overscroll-behavior: none;"></div>
   </Transition>
 

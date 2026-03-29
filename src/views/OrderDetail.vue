@@ -285,7 +285,21 @@
                     fulfillmentTypeLabelText(child.fulfillment.type) }}</div>
                   <div class="text-sm theme-text-muted">{{ t('orderDetail.fulfillmentStatus') }}：{{
                     fulfillmentStatusLabelText(child.fulfillment.status) }}</div>
-                  <div v-if="fulfillmentDeliveryLines(child.fulfillment).length"
+                  <div v-if="isFulfillmentTruncated(child.fulfillment)" class="mt-3">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm theme-text-muted">{{ t('orderDetail.fulfillmentTotalLines', { count: child.fulfillment.payload_line_count }) }}</span>
+                      <button class="text-xs px-2.5 py-1 rounded-lg border theme-border theme-text-muted hover:theme-text-primary"
+                        :disabled="fulfillmentDownloading"
+                        @click="handleDownloadFulfillment(child.id, child.order_no || order.order_no)">
+                        {{ fulfillmentDownloading ? t('orderDetail.fulfillmentDownloading') : t('orderDetail.fulfillmentDownload') }}
+                      </button>
+                    </div>
+                    <div class="mb-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                      {{ t('orderDetail.fulfillmentTruncatedHint') }}
+                    </div>
+                    <div class="theme-surface-soft border rounded-xl p-4 text-sm theme-text-secondary whitespace-pre-wrap break-all overflow-hidden max-h-48 overflow-y-auto">{{ child.fulfillment.payload }}</div>
+                  </div>
+                  <div v-else-if="fulfillmentDeliveryLines(child.fulfillment).length"
                     class="mt-3 theme-surface-soft border rounded-xl p-4 text-sm theme-text-secondary space-y-1 break-all overflow-hidden">
                     <div v-for="(line, index) in fulfillmentDeliveryLines(child.fulfillment)" :key="`child-fulfillment-${child.id}-${index}`">{{ line }}</div>
                   </div>
@@ -304,18 +318,33 @@
           class="theme-panel rounded-2xl p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold">{{ t('orderDetail.fulfillmentTitle') }}</h2>
-            <button v-if="order.fulfillment.status === 'delivered'"
-              class="text-xs px-3 py-1.5 rounded-lg border theme-border transition-colors"
-              :class="fulfillmentCopied ? 'text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' : 'theme-text-muted hover:theme-text-primary'"
-              @click="handleCopyFulfillment(order.fulfillment)">
-              {{ fulfillmentCopied ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopy') }}
-            </button>
+            <div class="flex items-center gap-2">
+              <button v-if="isFulfillmentTruncated(order.fulfillment)"
+                class="text-xs px-3 py-1.5 rounded-lg border theme-border transition-colors theme-text-muted hover:theme-text-primary"
+                :disabled="fulfillmentDownloading"
+                @click="handleDownloadFulfillment(order.id, order.order_no)">
+                {{ fulfillmentDownloading ? t('orderDetail.fulfillmentDownloading') : t('orderDetail.fulfillmentDownload') }}
+              </button>
+              <button v-if="order.fulfillment.status === 'delivered' && !isFulfillmentTruncated(order.fulfillment)"
+                class="text-xs px-3 py-1.5 rounded-lg border theme-border transition-colors"
+                :class="fulfillmentCopied ? 'text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' : 'theme-text-muted hover:theme-text-primary'"
+                @click="handleCopyFulfillment(order.fulfillment)">
+                {{ fulfillmentCopied ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopy') }}
+              </button>
+            </div>
           </div>
           <div class="text-sm theme-text-muted">{{ t('orderDetail.fulfillmentType') }}：{{
             fulfillmentTypeLabelText(order.fulfillment.type) }}</div>
           <div class="text-sm theme-text-muted">{{ t('orderDetail.fulfillmentStatus') }}：{{
             fulfillmentStatusLabelText(order.fulfillment.status) }}</div>
-          <div v-if="fulfillmentDeliveryLines(order.fulfillment).length"
+          <div v-if="isFulfillmentTruncated(order.fulfillment)" class="mt-4">
+            <div class="text-sm theme-text-muted mb-2">{{ t('orderDetail.fulfillmentTotalLines', { count: order.fulfillment.payload_line_count }) }}</div>
+            <div class="mb-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+              {{ t('orderDetail.fulfillmentTruncatedHint') }}
+            </div>
+            <div class="theme-surface-soft border rounded-xl p-4 text-sm theme-text-secondary whitespace-pre-wrap break-all overflow-hidden max-h-64 overflow-y-auto">{{ order.fulfillment.payload }}</div>
+          </div>
+          <div v-else-if="fulfillmentDeliveryLines(order.fulfillment).length"
             class="mt-4 theme-surface-soft border rounded-xl p-4 text-sm theme-text-secondary space-y-1 break-all overflow-hidden">
             <div v-for="(line, index) in fulfillmentDeliveryLines(order.fulfillment)" :key="`fulfillment-${order.order_no || 'order'}-${index}`">{{ line }}</div>
           </div>
@@ -352,6 +381,29 @@ const loading = ref(true)
 const order = ref<any>(null)
 const fulfillmentCopied = ref(false)
 let fulfillmentCopiedTimer: ReturnType<typeof setTimeout> | null = null
+
+const fulfillmentDownloading = ref(false)
+
+const isFulfillmentTruncated = (fulfillment: any) => {
+  return fulfillment?.payload_line_count > 100
+}
+
+const handleDownloadFulfillment = async (orderId: number, orderNo: string) => {
+  if (fulfillmentDownloading.value) return
+  fulfillmentDownloading.value = true
+  try {
+    const res = await userOrderAPI.downloadFulfillment(orderId)
+    const blob = new Blob([res.data], { type: 'text/plain; charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `fulfillment-${orderNo}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {} finally {
+    fulfillmentDownloading.value = false
+  }
+}
 
 const handleCopyFulfillment = async (fulfillment: any) => {
   const lines = fulfillmentDeliveryLines(fulfillment)
