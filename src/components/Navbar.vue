@@ -3,17 +3,17 @@
     class="fixed top-0 left-0 right-0 z-50 theme-panel-soft border-b theme-border backdrop-blur-md transition-all"
     :class="scrolled ? 'py-2 shadow-lg' : 'py-4'"
     :style="{ transitionDuration: 'var(--ui-duration-normal)' }">
-    <div class="container mx-auto px-4 flex items-center justify-between">
+    <div class="container mx-auto px-4 flex items-center justify-between gap-4">
       <!-- Logo -->
       <router-link to="/" class="theme-wordmark group relative" :title="brandSiteName">
         <span class="theme-wordmark-text">{{ brandSiteName }}</span>
       </router-link>
 
       <!-- Desktop Menu -->
-      <div class="hidden md:flex items-center space-x-1">
+      <div class="hidden lg:flex items-center space-x-1 min-w-0 overflow-x-auto scrollbar-hide">
         <template v-for="item in menuItems" :key="item.key">
           <router-link v-if="item.type === 'route'" :to="item.path"
-            class="theme-nav-link text-sm relative group overflow-hidden flex items-center gap-1.5"
+            class="theme-nav-link text-sm relative group overflow-hidden flex items-center gap-1.5 whitespace-nowrap shrink-0"
             active-class="theme-nav-link-active">
             <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" :d="item.icon" />
@@ -21,7 +21,7 @@
             <span class="relative z-10">{{ item.label.startsWith('nav.') ? t(item.label) : item.label }}</span>
           </router-link>
           <a v-else :href="item.path" :target="item.target" rel="noopener noreferrer"
-            class="theme-nav-link text-sm relative group overflow-hidden flex items-center gap-1.5">
+            class="theme-nav-link text-sm relative group overflow-hidden flex items-center gap-1.5 whitespace-nowrap shrink-0">
             <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" :d="item.icon" />
             </svg>
@@ -31,11 +31,11 @@
       </div>
 
       <!-- Right Side Actions -->
-      <div class="flex items-center space-x-2 md:space-x-4">
+      <div class="flex items-center shrink-0 space-x-2 lg:space-x-4">
         <!-- Cart (desktop only, mobile has bottom nav) -->
         <router-link to="/cart"
-          class="hidden md:flex theme-nav-link relative gap-2 px-3 min-w-[44px] min-h-[44px] items-center justify-center">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          class="hidden lg:flex theme-nav-link relative gap-2 px-3 min-w-[44px] min-h-[44px] items-center justify-center whitespace-nowrap">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.3 2.6a1 1 0 00.9 1.4H19M7 13l.4 2M10 21a1 1 0 100-2 1 1 0 000 2zm8 1a1 1 0 100-2 1 1 0 000 2z" />
           </svg>
@@ -48,29 +48,29 @@
         </router-link>
 
         <router-link v-if="!userAuthStore.isAuthenticated" to="/guest/orders"
-          class="hidden md:inline-flex theme-nav-link items-center gap-1.5">
-          <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          class="hidden lg:inline-flex theme-nav-link items-center gap-1.5 whitespace-nowrap">
+          <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
           {{ t('navbar.guestOrders') }}
         </router-link>
         <router-link v-if="!userAuthStore.isAuthenticated" to="/auth/login"
-          class="hidden md:inline-flex theme-nav-link items-center gap-1.5">
-          <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          class="hidden lg:inline-flex theme-nav-link items-center gap-1.5 whitespace-nowrap">
+          <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
           </svg>
           {{ t('navbar.login') }}
         </router-link>
         <router-link v-if="userAuthStore.isAuthenticated" to="/me"
-          class="hidden md:inline-flex theme-nav-link items-center gap-1.5">
-          <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          class="hidden lg:inline-flex theme-nav-link items-center gap-1.5 whitespace-nowrap">
+          <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
           {{ t('navbar.personalCenter') }}
         </router-link>
         <button v-if="userAuthStore.isAuthenticated" @click="userAuthStore.logout()"
-          class="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-white hover:bg-red-50 dark:hover:bg-red-500/10 transition-all border border-transparent hover:border-red-200 dark:hover:border-red-500/20 text-xs font-medium">
-          <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          class="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-white hover:bg-red-50 dark:hover:bg-red-500/10 transition-all border border-transparent hover:border-red-200 dark:hover:border-red-500/20 text-xs font-medium whitespace-nowrap">
+          <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           {{ t('navbar.logout') }}
@@ -83,7 +83,7 @@
         </button>
 
         <!-- Language Switcher (Desktop) -->
-        <div class="relative group/lang lang-switcher hidden md:block">
+        <div class="relative group/lang lang-switcher hidden lg:block">
           <button @click="toggleLangMenu"
             class="theme-nav-link space-x-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,7 +111,7 @@
 
         <!-- Mobile Menu Button (more menu, not main nav) -->
         <button @click="toggleMobileMenu"
-          class="md:hidden theme-nav-link p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
+          class="lg:hidden theme-nav-link p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="5" r="1.5" fill="currentColor" />
             <circle cx="12" cy="12" r="1.5" fill="currentColor" />
@@ -133,7 +133,7 @@
       leave-active-class="transition duration-200 ease-in"
       leave-from-class="opacity-100"
       leave-to-class="opacity-0">
-      <div v-if="showMobileMenu" class="md:hidden fixed inset-0 z-[60] bg-black/50" @click="showMobileMenu = false" style="overscroll-behavior: none;"></div>
+      <div v-if="showMobileMenu" class="lg:hidden fixed inset-0 z-[60] bg-black/50" @click="showMobileMenu = false" style="overscroll-behavior: none;"></div>
     </Transition>
 
     <!-- Mobile Drawer (only items NOT in bottom nav) -->
@@ -145,7 +145,7 @@
       leave-from-class="translate-x-0"
       leave-to-class="translate-x-full">
       <div v-if="showMobileMenu"
-        class="md:hidden fixed right-0 top-0 bottom-0 z-[70] w-72 max-w-[80vw] theme-panel-strong backdrop-blur-xl border-l theme-border overflow-y-auto"
+        class="lg:hidden fixed right-0 top-0 bottom-0 z-[70] w-72 max-w-[80vw] theme-panel-strong backdrop-blur-xl border-l theme-border overflow-y-auto"
         style="overscroll-behavior: none;">
         <div class="p-5 space-y-1">
           <!-- Header -->
@@ -399,3 +399,13 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
+
+<style scoped>
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+</style>

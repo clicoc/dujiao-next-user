@@ -123,8 +123,8 @@
         <div class="theme-panel rounded-2xl p-6">
           <h2 class="text-lg font-bold mb-4">{{ t('orderDetail.itemsTitle') }}</h2>
           <div v-if="order.items && order.items.length > 0" class="space-y-4">
-            <div v-for="item in order.items" :key="item.id"
-              class="flex items-start justify-between gap-4 border-b border-gray-100 pb-3 dark:border-white/5">
+            <div v-for="(item, idx) in order.items" :key="idx"
+              class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 border-b border-gray-100 pb-3 dark:border-white/5">
               <div class="flex min-w-0 items-start gap-3">
                 <div class="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm dark:border-white/10 dark:bg-black/30 sm:h-16 sm:w-16">
                   <img
@@ -159,16 +159,16 @@
                       {{ tag }}
                     </span>
                   </div>
-                  <div v-if="manualSubmissionRows(item.manual_form_submission).length"
+                  <div v-if="manualSubmissionRows(item.manual_form_submission, item.manual_form_schema_snapshot).length"
                     class="mt-3 rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-600 dark:border-white/10 dark:bg-black/30 dark:text-gray-300">
                     <div class="mb-2 font-semibold theme-text-secondary">{{ t('orderDetail.manualSubmissionTitle') }}</div>
-                    <div v-for="row in manualSubmissionRows(item.manual_form_submission)" :key="`${item.id}-${row.key}`" class="mb-1 last:mb-0">
-                      <span class="theme-text-primary">{{ row.key }}</span>：{{ row.value }}
+                    <div v-for="row in manualSubmissionRows(item.manual_form_submission, item.manual_form_schema_snapshot)" :key="row.key" class="mb-1 last:mb-0">
+                      <span class="theme-text-primary">{{ row.label }}</span>：{{ row.value }}
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="shrink-0 text-right text-sm theme-text-muted space-y-1">
+              <div class="shrink-0 pl-[4.25rem] sm:pl-0 text-left sm:text-right text-sm theme-text-muted space-y-1">
                 <div>{{ t('orderDetail.unitPriceLabel') }}：{{ formatMoney(item.unit_price, order.currency) }}</div>
                 <div>{{ t('orderDetail.totalPriceLabel') }}：{{ formatMoney(item.total_price, order.currency) }}</div>
                 <div v-if="hasDiscountAmount(item.coupon_discount_amount)">
@@ -209,8 +209,8 @@
                 <h3 class="text-sm font-semibold theme-text-primary mb-3">{{ t('orderDetail.childItemsTitle')
                   }}</h3>
                 <div v-if="child.items && child.items.length" class="space-y-3">
-                  <div v-for="item in child.items" :key="item.id"
-                    class="flex items-start justify-between gap-4 border-b border-gray-100 pb-3 text-sm theme-text-muted dark:border-white/5">
+                  <div v-for="(item, cidx) in child.items" :key="cidx"
+                    class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 border-b border-gray-100 pb-3 text-sm theme-text-muted dark:border-white/5">
                     <div class="flex min-w-0 items-start gap-3">
                       <div class="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm dark:border-white/10 dark:bg-black/30 sm:h-16 sm:w-16">
                         <img
@@ -245,16 +245,16 @@
                             {{ tag }}
                           </span>
                         </div>
-                        <div v-if="manualSubmissionRows(item.manual_form_submission).length"
+                        <div v-if="manualSubmissionRows(item.manual_form_submission, item.manual_form_schema_snapshot).length"
                           class="mt-3 rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-600 dark:border-white/10 dark:bg-black/30 dark:text-gray-300">
                           <div class="mb-2 font-semibold theme-text-secondary">{{ t('orderDetail.manualSubmissionTitle') }}</div>
-                          <div v-for="row in manualSubmissionRows(item.manual_form_submission)" :key="`${item.id}-${row.key}`" class="mb-1 last:mb-0">
-                            <span class="theme-text-primary">{{ row.key }}</span>：{{ row.value }}
+                          <div v-for="row in manualSubmissionRows(item.manual_form_submission, item.manual_form_schema_snapshot)" :key="row.key" class="mb-1 last:mb-0">
+                            <span class="theme-text-primary">{{ row.label }}</span>：{{ row.value }}
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div class="shrink-0 text-right text-sm theme-text-muted space-y-1">
+                    <div class="shrink-0 pl-[4.25rem] sm:pl-0 text-left sm:text-right text-sm theme-text-muted space-y-1">
                       <div>{{ t('orderDetail.unitPriceLabel') }}：{{ formatMoney(item.unit_price, order.currency) }}
                       </div>
                       <div>{{ t('orderDetail.totalPriceLabel') }}：{{ formatMoney(item.total_price, order.currency) }}
@@ -281,9 +281,11 @@
                   <h3 class="text-sm font-semibold theme-text-primary">{{
                     t('orderDetail.childFulfillmentTitle') }}</h3>
                   <button v-if="child.fulfillment?.status === 'delivered'"
-                    class="text-xs px-2.5 py-1 rounded-lg border theme-border transition-colors"
-                    :class="fulfillmentCopied ? 'text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' : 'theme-text-muted hover:theme-text-primary'"
+                    class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                    :class="fulfillmentCopied ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'"
                     @click="handleCopyFulfillment(child.fulfillment)">
+                    <svg v-if="!fulfillmentCopied" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     {{ fulfillmentCopied ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopy') }}
                   </button>
                 </div>
@@ -295,9 +297,10 @@
                   <div v-if="isFulfillmentTruncated(child.fulfillment)" class="mt-3">
                     <div class="flex items-center justify-between mb-2">
                       <span class="text-sm theme-text-muted">{{ t('orderDetail.fulfillmentTotalLines', { count: child.fulfillment.payload_line_count }) }}</span>
-                      <button class="text-xs px-2.5 py-1 rounded-lg border theme-border theme-text-muted hover:theme-text-primary"
+                      <button class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm disabled:opacity-50"
                         :disabled="fulfillmentDownloading"
-                        @click="handleDownloadFulfillment(child.id, child.order_no || order.order_no)">
+                        @click="handleDownloadFulfillment(child.order_no || order.order_no)">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
                         {{ fulfillmentDownloading ? t('orderDetail.fulfillmentDownloading') : t('orderDetail.fulfillmentDownload') }}
                       </button>
                     </div>
@@ -327,15 +330,18 @@
             <h2 class="text-lg font-bold">{{ t('orderDetail.fulfillmentTitle') }}</h2>
             <div class="flex items-center gap-2">
               <button v-if="isFulfillmentTruncated(order.fulfillment)"
-                class="text-xs px-3 py-1.5 rounded-lg border theme-border transition-colors theme-text-muted hover:theme-text-primary"
+                class="inline-flex items-center gap-1 text-sm font-medium px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm disabled:opacity-50"
                 :disabled="fulfillmentDownloading"
-                @click="handleDownloadFulfillment(order.id, order.order_no)">
+                @click="handleDownloadFulfillment(order.order_no)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
                 {{ fulfillmentDownloading ? t('orderDetail.fulfillmentDownloading') : t('orderDetail.fulfillmentDownload') }}
               </button>
               <button v-if="order.fulfillment.status === 'delivered' && !isFulfillmentTruncated(order.fulfillment)"
-                class="text-xs px-3 py-1.5 rounded-lg border theme-border transition-colors"
-                :class="fulfillmentCopied ? 'text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' : 'theme-text-muted hover:theme-text-primary'"
+                class="inline-flex items-center gap-1 text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
+                :class="fulfillmentCopied ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'"
                 @click="handleCopyFulfillment(order.fulfillment)">
+                <svg v-if="!fulfillmentCopied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 {{ fulfillmentCopied ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopy') }}
               </button>
             </div>
@@ -399,11 +405,11 @@ const isFulfillmentTruncated = (fulfillment: any) => {
   return fulfillment?.payload_line_count > 100
 }
 
-const handleDownloadFulfillment = async (orderId: number, orderNo: string) => {
+const handleDownloadFulfillment = async (orderNo: string) => {
   if (fulfillmentDownloading.value) return
   fulfillmentDownloading.value = true
   try {
-    const res = await guestOrderAPI.downloadFulfillment(orderId, {
+    const res = await guestOrderAPI.downloadFulfillment(orderNo, {
       email: auth.value.email,
       order_password: auth.value.order_password,
     })
@@ -456,7 +462,7 @@ const loadOrder = async () => {
       authError.value = t('guestOrderDetail.authRequired')
       return
     }
-    const response = await guestOrderAPI.detailByOrderNo(String(route.params.order_no || '').trim(), {
+    const response = await guestOrderAPI.detail(String(route.params.order_no || '').trim(), {
       email: auth.value.email,
       order_password: auth.value.order_password,
     })
@@ -532,14 +538,62 @@ const formatManualValue = (value: unknown) => {
   return String(value)
 }
 
-const manualSubmissionRows = (submission: any) => {
+interface ManualFormSnapshotField {
+  key: string
+  label?: Record<string, string> | string
+}
+
+const normalizeManualSnapshotFields = (schemaSnapshot: any): ManualFormSnapshotField[] => {
+  if (!schemaSnapshot || typeof schemaSnapshot !== 'object') return []
+  const rawFields = Array.isArray(schemaSnapshot.fields) ? schemaSnapshot.fields : []
+  return rawFields
+    .map((field: any) => {
+      const key = String(field?.key || '').trim()
+      if (!key) return null
+      return {
+        key,
+        label: field?.label,
+      } as ManualFormSnapshotField
+    })
+    .filter(Boolean) as ManualFormSnapshotField[]
+}
+
+const resolveManualFieldLabel = (field: ManualFormSnapshotField) => {
+  if (typeof field.label === 'string' && field.label.trim()) return field.label.trim()
+  if (field.label && typeof field.label === 'object') {
+    const localized = getLocalizedText(field.label)
+    if (localized) return localized
+  }
+  return field.key
+}
+
+const manualSubmissionRows = (submission: any, schemaSnapshot?: any) => {
   if (!submission || typeof submission !== 'object') return []
-  return Object.entries(submission)
-    .filter(([key]) => String(key).trim() !== '')
-    .map(([key, value]) => ({
-      key: String(key),
+  const entries = Object.entries(submission).filter(([key]) => String(key).trim() !== '')
+  if (entries.length === 0) return []
+
+  const valueMap = new Map(entries.map(([key, value]) => [String(key), value] as const))
+  const rows: Array<{ key: string; label: string; value: string }> = []
+
+  normalizeManualSnapshotFields(schemaSnapshot).forEach((field) => {
+    if (!valueMap.has(field.key)) return
+    rows.push({
+      key: field.key,
+      label: resolveManualFieldLabel(field),
+      value: formatManualValue(valueMap.get(field.key)),
+    })
+    valueMap.delete(field.key)
+  })
+
+  valueMap.forEach((value, key) => {
+    rows.push({
+      key,
+      label: key,
       value: formatManualValue(value),
-    }))
+    })
+  })
+
+  return rows
 }
 
 const orderItemSkuText = (item: any) => {

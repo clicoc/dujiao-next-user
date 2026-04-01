@@ -36,8 +36,13 @@
               type="email"
               required
               class="w-full form-input-lg"
+              :class="{ 'ring-2 ring-red-400/50': formValidation.hasError('email') }"
               :placeholder="t('auth.login.emailPlaceholder')"
+              @blur="formValidation.touchField('email', email)"
             />
+            <p v-if="formValidation.hasError('email')" class="mt-1.5 text-xs text-red-500">
+              {{ formValidation.getError('email') }}
+            </p>
           </div>
 
           <div>
@@ -47,13 +52,33 @@
               </svg>
               {{ t('auth.login.passwordLabel') }}
             </label>
-            <input
-              v-model="password"
-              type="password"
-              required
-              class="w-full form-input-lg"
-              :placeholder="t('auth.login.passwordPlaceholder')"
-            />
+            <div class="relative">
+              <input
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                class="w-full form-input-lg pr-10"
+                :class="{ 'ring-2 ring-red-400/50': formValidation.hasError('password') }"
+                :placeholder="t('auth.login.passwordPlaceholder')"
+                @blur="formValidation.touchField('password', password)"
+              />
+              <button
+                type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2 theme-text-muted hover:theme-text-primary transition-colors"
+                @click="showPassword = !showPassword"
+              >
+                <svg v-if="showPassword" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+            </div>
+            <p v-if="formValidation.hasError('password')" class="mt-1.5 text-xs text-red-500">
+              {{ formValidation.getError('password') }}
+            </p>
           </div>
 
           <div v-if="loginCaptchaEnabled">
@@ -84,6 +109,7 @@
               {{ t('auth.login.rememberMe') }}
             </label>
             <router-link
+              v-if="emailVerificationEnabled"
               to="/auth/forgot"
               class="font-medium theme-link-muted"
             >
@@ -172,10 +198,11 @@ import { useI18n } from 'vue-i18n'
 import { debounceAsync } from '../../utils/debounce'
 import { useAppStore } from '../../stores/app'
 import { useTelegramMiniAppStore } from '../../stores/telegramMiniApp'
-import { buildTelegramMiniAppEntryLink, openTelegramCompatibleLink } from '../../utils/telegramMiniApp'
+import { buildTelegramMiniAppEntryLink, isTelegramUrlEnvironment, openTelegramCompatibleLink } from '../../utils/telegramMiniApp'
 import type { CaptchaPayload, TelegramAuthPayload } from '../../api'
 import ImageCaptcha from '../../components/captcha/ImageCaptcha.vue'
 import TurnstileCaptcha from '../../components/captcha/TurnstileCaptcha.vue'
+import { useFormValidation } from '../../composables/useFormValidation'
 
 const router = useRouter()
 const route = useRoute()
@@ -191,7 +218,13 @@ const brandSiteName = computed(() => {
 
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const rememberMe = ref(true)
+
+const formValidation = useFormValidation(['email', 'password'])
+formValidation.addRule('email', formValidation.requiredRule())
+formValidation.addRule('email', formValidation.emailRule())
+formValidation.addRule('password', formValidation.requiredRule())
 const error = ref('')
 const info = ref('')
 const captchaPayload = ref<CaptchaPayload>({})
@@ -209,12 +242,14 @@ const telegramBotUsername = computed(() => String(telegramConfig.value?.bot_user
 const telegramMiniAppURL = computed(() => String(telegramConfig.value?.mini_app_url || '').trim())
 const telegramEnabled = computed(() => !!telegramConfig.value?.enabled && telegramBotUsername.value !== '')
 const registrationEnabled = computed(() => appStore.config?.registration_enabled !== false)
+const emailVerificationEnabled = computed(() => appStore.config?.email_verification_enabled !== false)
 const isTelegramMiniApp = computed(() => telegramMiniAppStore.isMiniApp && telegramMiniAppStore.isReady)
 const miniAppInitData = computed(() => String(telegramMiniAppStore.initData || '').trim())
 const showTelegramWidget = computed(() => telegramEnabled.value && !isTelegramMiniApp.value)
 const showMiniAppLoginHint = computed(() => isTelegramMiniApp.value)
 const telegramMiniAppEntryLink = computed(() => buildTelegramMiniAppEntryLink(telegramBotUsername.value, telegramMiniAppURL.value))
-const showTelegramMiniAppEntry = computed(() => !isTelegramMiniApp.value && telegramMiniAppEntryLink.value !== '')
+const isTelegramUrlEnv = isTelegramUrlEnvironment()
+const showTelegramMiniAppEntry = computed(() => !isTelegramMiniApp.value && isTelegramUrlEnv && telegramMiniAppEntryLink.value !== '')
 const telegramCallbackName = '__dujiaoUserTelegramLogin'
 const miniAppLoginAttempted = ref(false)
 const attemptingMiniAppLogin = ref(false)

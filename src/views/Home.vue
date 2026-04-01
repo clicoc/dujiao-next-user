@@ -135,7 +135,7 @@
                     <span class="w-1 h-5 rounded-full theme-accent-stick flex-shrink-0"></span>
                     <img v-if="group.categoryIcon" :src="getImageUrl(group.categoryIcon)"
                       :alt="group.categoryName" class="h-5 w-5 rounded object-cover flex-shrink-0" />
-                    <span class="text-sm font-semibold theme-text-primary">{{ group.categoryName }}</span>
+                    <span class="text-sm font-semibold theme-text-primary truncate">{{ group.categoryName }}</span>
                     <span class="text-xs theme-text-muted">({{ group.products.length }})</span>
                   </div>
                   <!-- Products in this category -->

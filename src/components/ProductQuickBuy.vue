@@ -35,6 +35,8 @@
         @click.self="close"
       >
         <div
+          role="dialog"
+          aria-modal="true"
           class="
             w-full max-h-[85vh] flex flex-col
             rounded-t-2xl md:rounded-2xl
@@ -601,6 +603,7 @@ const handleAddToCart = () => {
     purchaseType: props.product.purchase_type,
     fulfillmentType: props.product.fulfillment_type,
     manualFormSchema: props.product.manual_form_schema || {},
+    paymentChannelIds: Array.isArray(props.product.payment_channel_ids) && props.product.payment_channel_ids.length > 0 ? props.product.payment_channel_ids : undefined,
     quantity: 1,
   }, quantity.value)
   toast.success(t('toast.addedToCart'))
@@ -646,6 +649,7 @@ const handleBuyNow = () => {
     purchaseType: props.product.purchase_type,
     fulfillmentType: props.product.fulfillment_type,
     manualFormSchema: props.product.manual_form_schema || {},
+    paymentChannelIds: Array.isArray(props.product.payment_channel_ids) && props.product.payment_channel_ids.length > 0 ? props.product.payment_channel_ids : undefined,
     quantity: quantity.value,
   })
   close()

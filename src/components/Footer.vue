@@ -13,7 +13,7 @@
             <h3 class="theme-text-primary text-xl font-bold tracking-tight">{{ brandSiteName }}</h3>
           </div>
           <p class="text-sm leading-relaxed max-w-sm theme-text-muted">
-            {{ t('footer.description') }}
+            {{ brandDescription || t('footer.description') }}
           </p>
           <div class="flex space-x-4">
             <!-- Social Icons (Placeholder) -->
@@ -123,6 +123,15 @@ const config = computed(() => appStore.config)
 const brandSiteName = computed(() => {
   const siteName = config.value?.brand?.site_name
   return typeof siteName === 'string' && siteName.trim() ? siteName.trim() : 'Dujiao-Next'
+})
+
+const brandDescription = computed(() => {
+  const desc = config.value?.brand?.site_description
+  if (desc && typeof desc === 'object') {
+    const val = desc[appStore.locale] || desc['zh-CN'] || ''
+    return typeof val === 'string' ? val.trim() : ''
+  }
+  return ''
 })
 
 const brandInitial = computed(() => {

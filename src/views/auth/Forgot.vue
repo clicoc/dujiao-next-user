@@ -23,7 +23,14 @@
           <p class="mt-2 text-sm theme-text-muted">{{ t('auth.forgot.subtitle') }}</p>
         </div>
 
-        <form class="theme-auth-form" @submit.prevent="handleReset">
+        <div v-if="!emailVerificationEnabled" class="rounded-xl border theme-alert-danger px-4 py-4 text-center">
+          <p class="text-sm font-medium">{{ t('auth.forgot.disabled') }}</p>
+          <router-link to="/auth/login" class="mt-3 inline-block theme-link-muted text-sm">
+            {{ t('auth.forgot.backLogin') }}
+          </router-link>
+        </div>
+
+        <form v-else class="theme-auth-form" @submit.prevent="handleReset">
           <div>
             <label class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
               <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,6 +163,8 @@ const brandSiteName = computed(() => {
   const siteName = String(appStore.config?.brand?.site_name || '').trim()
   return siteName !== '' ? siteName : 'Dujiao-Next'
 })
+
+const emailVerificationEnabled = computed(() => appStore.config?.email_verification_enabled !== false)
 
 const email = ref('')
 const code = ref('')

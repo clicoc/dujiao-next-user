@@ -91,6 +91,15 @@ export const useAppStore = defineStore('app', () => {
             }
             applySEO()
             applyCustomScripts(config.value?.scripts)
+            // Print version to console
+            if (config.value?.app_version) {
+                console.log(
+                    '%c Version %c ' + config.value.app_version + ' %c',
+                    'background:#34c759;color:#fff;padding:2px 6px;border-radius:4px 0 0 4px;font-weight:bold;',
+                    'background:#1d1d1f;color:#f5f5f7;padding:2px 6px;border-radius:0 4px 4px 0;',
+                    'background:transparent;',
+                )
+            }
         } catch (error) {
             console.error('Failed to load config:', error)
         } finally {

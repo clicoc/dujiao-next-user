@@ -22,6 +22,7 @@ export interface CartItem {
     purchaseType?: string
     fulfillmentType?: string
     manualFormSchema?: any
+    paymentChannelIds?: number[]
 }
 
 const normalizeSkuId = (value: unknown) => {

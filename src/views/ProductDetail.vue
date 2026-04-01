@@ -50,31 +50,12 @@
           class="theme-panel backdrop-blur-xl border rounded-3xl overflow-hidden mb-8 shadow-2xl">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
             <!-- Product Images (Left) -->
-            <div class="p-4 md:p-8 theme-surface-soft border-r theme-border">
-              <div class="mb-4 md:mb-6 relative group"
-                @touchstart="onImageTouchStart"
-                @touchend="onImageTouchEnd">
-                <img v-if="currentImage" :src="currentImage" :alt="getLocalizedText(product.title)"
-                  class="w-full aspect-[4/3] object-cover rounded-xl border theme-border relative z-10 shadow-lg" />
-                <div v-else
-                  class="w-full aspect-[4/3] theme-surface-muted rounded-xl border theme-border flex items-center justify-center relative z-10">
-                  <svg class="w-24 h-24 theme-text-muted" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd"
-                      d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                      clip-rule="evenodd" />
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Thumbnail Gallery: horizontal scroll on mobile, grid on desktop -->
-              <div v-if="images.length > 1" class="flex md:grid md:grid-cols-5 gap-3 overflow-x-auto md:overflow-visible pb-2 md:pb-0 -mx-1 px-1 snap-x snap-mandatory">
-                <div v-for="(image, index) in images" :key="index" @click="currentImage = image"
-                  class="cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 shrink-0 w-16 h-16 md:w-auto md:h-auto md:aspect-square snap-start"
-                  :class="currentImage === image ? 'theme-thumb-selected opacity-100' : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'">
-                  <img :src="image" :alt="`Image ${index + 1}`" class="w-full h-full object-cover" />
-                </div>
-              </div>
-            </div>
+            <ProductImageGallery
+              :images="images"
+              :current-image="currentImage"
+              :product-title="getLocalizedText(product.title)"
+              @update:current-image="currentImage = $event"
+            />
 
             <!-- Product Info (Right) -->
             <div class="p-6 md:p-8 lg:p-12 flex flex-col justify-center">
@@ -361,52 +342,23 @@
         </div>
 
         <!-- Mobile Fixed Purchase Bar -->
-        <Transition
-          enter-active-class="transition duration-300 ease-out"
-          enter-from-class="translate-y-full opacity-0"
-          enter-to-class="translate-y-0 opacity-100"
-          leave-active-class="transition duration-200 ease-in"
-          leave-from-class="translate-y-0 opacity-100"
-          leave-to-class="translate-y-full opacity-0">
-          <div v-if="showMobileBar && product && !loading"
-            class="lg:hidden fixed bottom-0 left-0 right-0 z-40 theme-panel-strong backdrop-blur-xl border-t theme-border shadow-2xl theme-safe-bottom">
-            <div class="flex items-center gap-3 px-4 py-3">
-              <!-- Price -->
-              <div class="flex-1 min-w-0">
-                <span v-if="selectedSku && hasMemberPrice && selectedSkuMemberPrice! < Number(hasSkuPromotionPrice(selectedSku) ? getSkuPromotionPriceAmount(selectedSku) : selectedSku.price_amount)" class="theme-price-sm text-amber-600 dark:text-amber-300 truncate block">
-                  {{ formatPrice(selectedSkuMemberPrice!, siteCurrency) }}
-                </span>
-                <span v-else-if="selectedSku && hasSkuPromotionPrice(selectedSku)" class="theme-price-sm text-rose-600 dark:text-rose-300 truncate block">
-                  {{ formatPrice(getSkuPromotionPriceAmount(selectedSku), siteCurrency) }}
-                </span>
-                <span v-else-if="selectedSku" class="theme-price-sm theme-text-accent truncate block">
-                  {{ formatPrice(selectedSku.price_amount, siteCurrency) }}
-                </span>
-                <span v-else-if="hasPromotionPrice(product)" class="theme-price-sm text-rose-600 dark:text-rose-300 truncate block">
-                  {{ formatPrice(getPromotionPriceAmount(product), siteCurrency) }}
-                </span>
-                <span v-else class="theme-price-sm theme-text-accent truncate block">
-                  {{ formatPrice(product.price_amount, siteCurrency) }}
-                </span>
-              </div>
-              <!-- Actions -->
-              <button v-if="requiresLogin" @click="goLogin"
-                class="px-5 py-3 theme-btn-primary font-bold rounded-xl text-sm min-h-[44px]">
-                {{ t('productDetail.loginToBuy') }}
-              </button>
-              <template v-else>
-                <button @click="addToCart" :disabled="!canPurchase"
-                  class="px-4 py-3 border theme-btn-secondary font-bold rounded-xl text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]">
-                  {{ t('productDetail.addToCart') }}
-                </button>
-                <button @click="buyNow" :disabled="!canPurchase"
-                  class="px-5 py-3 theme-btn-primary font-bold rounded-xl text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]">
-                  {{ t('productDetail.buyNow') }}
-                </button>
-              </template>
-            </div>
-          </div>
-        </Transition>
+        <ProductMobileBar
+          :visible="showMobileBar && !!product && !loading"
+          :requires-login="requiresLogin"
+          :can-purchase="canPurchase"
+          :show-member-price="mobileBarShowMemberPrice"
+          :member-price-display="mobileBarMemberPriceDisplay"
+          :show-sku-promotion-price="mobileBarShowSkuPromotionPrice"
+          :sku-promotion-price-display="mobileBarSkuPromotionPriceDisplay"
+          :show-sku-price="mobileBarShowSkuPrice"
+          :sku-price-display="mobileBarSkuPriceDisplay"
+          :show-product-promotion-price="mobileBarShowProductPromotionPrice"
+          :product-promotion-price-display="mobileBarProductPromotionPriceDisplay"
+          :product-price-display="mobileBarProductPriceDisplay"
+          @add-to-cart="addToCart"
+          @buy-now="buyNow"
+          @go-login="goLogin"
+        />
       </div>
 
       <!-- Error State -->
@@ -420,10 +372,21 @@
         <p class="theme-text-muted text-xl mb-8">
           {{ t('productDetail.notFound') }}
         </p>
-        <router-link to="/products"
-          class="inline-block theme-btn-primary px-8 py-3 rounded-full font-bold hover:scale-105 transition-transform">
-          {{ t('productDetail.backToProducts') }}
-        </router-link>
+        <div class="flex flex-wrap items-center justify-center gap-4">
+          <button
+            @click="loadProduct"
+            class="inline-flex items-center gap-2 theme-btn-primary px-8 py-3 rounded-full font-bold hover:scale-105 transition-transform"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {{ t('errorBoundary.retry') }}
+          </button>
+          <router-link to="/products"
+            class="inline-block border theme-btn-secondary px-8 py-3 rounded-full font-bold hover:scale-105 transition-transform">
+            {{ t('productDetail.backToProducts') }}
+          </router-link>
+        </div>
       </div>
     </div>
   </div>
@@ -446,6 +409,8 @@ import { useHead } from '@unhead/vue'
 import { buildSkuDisplayText, normalizeSkuId } from '../utils/sku'
 import { useLocalized, useProductLabels } from '../composables/useProduct'
 import { toast } from '../composables/useToast'
+import ProductImageGallery from '../components/product/ProductImageGallery.vue'
+import ProductMobileBar from '../components/product/ProductMobileBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -483,27 +448,6 @@ const purchaseWarning = ref('')
 const purchaseActionsRef = ref<HTMLElement | null>(null)
 const showMobileBar = ref(false)
 let observer: IntersectionObserver | null = null
-
-// Image touch swipe
-let touchStartX = 0
-const onImageTouchStart = (e: TouchEvent) => {
-  touchStartX = e.touches[0]?.clientX ?? 0
-}
-const onImageTouchEnd = (e: TouchEvent) => {
-  const touchEndX = e.changedTouches[0]?.clientX ?? 0
-  const diff = touchStartX - touchEndX
-  if (Math.abs(diff) < 50) return
-  if (images.value.length <= 1) return
-  const currentIdx = images.value.indexOf(currentImage.value)
-  if (currentIdx === -1) return
-  if (diff > 0) {
-    // Swipe left -> next
-    currentImage.value = images.value[(currentIdx + 1) % images.value.length] ?? ''
-  } else {
-    // Swipe right -> prev
-    currentImage.value = images.value[(currentIdx - 1 + images.value.length) % images.value.length] ?? ''
-  }
-}
 
 const activeSkus = computed(() => {
   const rows = Array.isArray(product.value?.skus) ? product.value.skus : []
@@ -760,6 +704,7 @@ const addToCart = () => {
     purchaseType: product.value.purchase_type,
     fulfillmentType: product.value.fulfillment_type,
     manualFormSchema: product.value.manual_form_schema || {},
+    paymentChannelIds: Array.isArray(product.value.payment_channel_ids) && product.value.payment_channel_ids.length > 0 ? product.value.payment_channel_ids : undefined,
     quantity: quantity.value,
   }, quantity.value)
   toast.success(t('toast.addedToCart'))
@@ -807,10 +752,50 @@ const buyNow = () => {
     purchaseType: product.value.purchase_type,
     fulfillmentType: product.value.fulfillment_type,
     manualFormSchema: product.value.manual_form_schema || {},
+    paymentChannelIds: Array.isArray(product.value.payment_channel_ids) && product.value.payment_channel_ids.length > 0 ? product.value.payment_channel_ids : undefined,
     quantity: quantity.value,
   })
   router.push('/checkout?mode=buynow')
 }
+
+// Mobile bar price display computed properties
+const mobileBarShowMemberPrice = computed(() => {
+  if (!selectedSku.value || !hasMemberPrice.value) return false
+  const promoPrice = hasSkuPromotionPrice(selectedSku.value) ? getSkuPromotionPriceAmount(selectedSku.value) : selectedSku.value.price_amount
+  return selectedSkuMemberPrice.value! < Number(promoPrice)
+})
+const mobileBarMemberPriceDisplay = computed(() => {
+  if (!selectedSkuMemberPrice.value) return ''
+  return formatPrice(selectedSkuMemberPrice.value, siteCurrency.value)
+})
+const mobileBarShowSkuPromotionPrice = computed(() => {
+  if (mobileBarShowMemberPrice.value) return false
+  return !!selectedSku.value && hasSkuPromotionPrice(selectedSku.value)
+})
+const mobileBarSkuPromotionPriceDisplay = computed(() => {
+  if (!selectedSku.value) return ''
+  return formatPrice(getSkuPromotionPriceAmount(selectedSku.value), siteCurrency.value)
+})
+const mobileBarShowSkuPrice = computed(() => {
+  if (mobileBarShowMemberPrice.value || mobileBarShowSkuPromotionPrice.value) return false
+  return !!selectedSku.value
+})
+const mobileBarSkuPriceDisplay = computed(() => {
+  if (!selectedSku.value) return ''
+  return formatPrice(selectedSku.value.price_amount, siteCurrency.value)
+})
+const mobileBarShowProductPromotionPrice = computed(() => {
+  if (selectedSku.value) return false
+  return product.value ? hasPromotionPrice(product.value) : false
+})
+const mobileBarProductPromotionPriceDisplay = computed(() => {
+  if (!product.value) return ''
+  return formatPrice(getPromotionPriceAmount(product.value), siteCurrency.value)
+})
+const mobileBarProductPriceDisplay = computed(() => {
+  if (!product.value) return ''
+  return formatPrice(product.value.price_amount, siteCurrency.value)
+})
 
 const goLogin = () => {
   router.push(`/auth/login?redirect=${encodeURIComponent(route.fullPath)}`)
@@ -855,8 +840,17 @@ const setupMobileBarObserver = () => {
 
 const debouncedLoadProduct = debounceAsync(loadProduct, 300)
 
+const canonicalUrl = computed(() => {
+  if (!product.value?.slug) return ''
+  return `${window.location.origin}/products/${product.value.slug}`
+})
+
 useHead({
   title: () => product.value ? getLocalizedText(product.value.title) : '',
+  link: () => {
+    if (!canonicalUrl.value) return []
+    return [{ rel: 'canonical', href: canonicalUrl.value }]
+  },
   meta: () => {
     if (!product.value) return []
     const seoMeta = product.value.seo_meta || {}
@@ -867,7 +861,7 @@ useHead({
     if (seoKeywords) tags.push({ name: 'keywords', content: seoKeywords })
     if (seoDescription) tags.push({ name: 'description', content: seoDescription })
 
-    tags.push({ property: 'og:type', content: 'website' })
+    tags.push({ property: 'og:type', content: 'product' })
     if (product.value.title) {
       tags.push({ property: 'og:title', content: getLocalizedText(product.value.title) })
     }
@@ -877,7 +871,9 @@ useHead({
     if (images.value && images.value.length > 0) {
       tags.push({ property: 'og:image', content: images.value[0] })
     }
-    tags.push({ property: 'og:url', content: window.location.href })
+    if (canonicalUrl.value) {
+      tags.push({ property: 'og:url', content: canonicalUrl.value })
+    }
 
     tags.push({ name: 'twitter:card', content: 'summary_large_image' })
     if (product.value.title) {
@@ -891,7 +887,40 @@ useHead({
     }
 
     return tags
-  }
+  },
+  script: () => {
+    if (!product.value) return []
+    const title = getLocalizedText(product.value.title)
+    const seoMeta = product.value.seo_meta || {}
+    const description = getLocalizedText(seoMeta.description) || (typeof seoMeta.description === 'string' ? seoMeta.description : '')
+    const priceAmount = product.value.price_amount || '0'
+    const currency = siteCurrency.value || 'CNY'
+
+    const jsonLd: Record<string, any> = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: title,
+      url: canonicalUrl.value || window.location.href,
+      offers: {
+        '@type': 'Offer',
+        price: priceAmount,
+        priceCurrency: currency,
+        availability: product.value.stock_status === 'out_of_stock'
+          ? 'https://schema.org/OutOfStock'
+          : 'https://schema.org/InStock',
+      },
+    }
+    if (description) jsonLd.description = description
+    if (images.value.length > 0) jsonLd.image = images.value
+    if (product.value.category?.name) {
+      jsonLd.category = getLocalizedText(product.value.category.name)
+    }
+
+    return [{
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(jsonLd),
+    }]
+  },
 })
 
 onMounted(() => {

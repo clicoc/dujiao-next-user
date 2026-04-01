@@ -27,7 +27,7 @@
         <!-- Main Content - Products Grid -->
         <main class="flex-1">
           <!-- Loading Skeleton -->
-          <div v-if="loading" class="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-3">
+          <div v-if="loading" class="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
             <div v-for="i in 6" :key="i"
               class="theme-panel rounded-2xl border overflow-hidden flex flex-col">
               <div class="h-36 md:h-56 theme-skeleton"></div>
@@ -50,7 +50,7 @@
 
           <!-- Products Grid -->
           <div v-else-if="products.length > 0">
-            <div class="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-3">
+            <div class="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
               <ProductCard
                 v-for="(product, idx) in products"
                 :key="product.id"
@@ -79,8 +79,15 @@
                 d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
             <p class="theme-text-muted text-lg">
-              {{ t('products.empty') }}
+              {{ (searchQuery || selectedCategory) ? t('products.emptyFiltered') : t('products.empty') }}
             </p>
+            <button
+              v-if="searchQuery || selectedCategory"
+              class="mt-4 theme-btn-inline-md border theme-btn-secondary font-semibold"
+              @click="clearSearch(); selectCategory(null)"
+            >
+              {{ t('products.clearFilters') }}
+            </button>
           </div>
         </main>
       </div>

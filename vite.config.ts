@@ -12,8 +12,19 @@ const cfAsyncModuleScriptPlugin = () => ({
 })
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [vue(), cfAsyncModuleScriptPlugin()],
+  esbuild: mode === 'production' ? { drop: ['console', 'debugger'] } : {},
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-qrcode': ['qrcode'],
+          'vendor-vue-i18n': ['vue-i18n'],
+        },
+      },
+    },
+  },
   server: {
     host: '0.0.0.0', // 监听所有网络接口
     port: 5173,
@@ -29,4 +40,4 @@ export default defineConfig({
       }
     }
   },
-})
+}))

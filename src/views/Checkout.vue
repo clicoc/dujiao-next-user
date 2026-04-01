@@ -124,87 +124,14 @@
             </div>
           </div>
 
-          <div
-            v-if="manualFormProducts.length"
-            class="rounded-2xl border theme-panel p-6"
-          >
-            <h2 class="mb-2 text-lg font-bold theme-text-primary">{{ t('checkout.manualFormTitle') }}</h2>
-            <p class="mb-4 text-xs theme-text-muted">{{ t('checkout.manualFormTip') }}</p>
-            <div class="space-y-5">
-              <div
-                v-for="manualItem in manualFormProducts"
-                :key="manualItem.itemKey"
-                class="rounded-xl border theme-surface-soft p-4"
-              >
-                <h3 class="mb-3 text-sm font-semibold theme-text-primary">{{ manualItemTitle(manualItem) }}</h3>
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div v-for="field in manualItem.fields" :key="`${manualItem.itemKey}-${field.key}`" class="space-y-1.5">
-                    <label class="text-xs font-semibold theme-text-secondary">
-                      {{ getManualFieldLabel(field) }}
-                      <span v-if="field.required" class="ml-1 text-red-500">*</span>
-                    </label>
-
-                    <textarea
-                      v-if="field.type === 'textarea'"
-                      v-model="ensureManualFormRow(manualItem.itemKey)[field.key]"
-                      rows="3"
-                      class="w-full form-input-compact"
-                      :placeholder="getManualFieldPlaceholder(field)"
-                    />
-
-                    <select
-                      v-else-if="field.type === 'select'"
-                      v-model="ensureManualFormRow(manualItem.itemKey)[field.key]"
-                      class="w-full form-input-compact"
-                    >
-                      <option value="">{{ t('checkout.manualFormSelectPlaceholder') }}</option>
-                      <option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
-                    </select>
-
-                    <div v-else-if="field.type === 'radio'" class="space-y-2 rounded-xl border theme-surface-soft p-3">
-                      <label v-for="option in field.options" :key="option" class="flex items-center gap-2 text-sm theme-text-secondary">
-                        <input
-                          v-model="ensureManualFormRow(manualItem.itemKey)[field.key]"
-                          type="radio"
-                          :name="`manual-radio-${manualItem.itemKey}-${field.key}`"
-                          :value="option"
-                          class="h-4 w-4"
-                        />
-                        <span>{{ option }}</span>
-                      </label>
-                    </div>
-
-                    <div v-else-if="field.type === 'checkbox'" class="space-y-2 rounded-xl border theme-surface-soft p-3">
-                      <label v-for="option in field.options" :key="option" class="flex items-center gap-2 text-sm theme-text-secondary">
-                        <input
-                          v-model="ensureManualFormRow(manualItem.itemKey)[field.key]"
-                          type="checkbox"
-                          :value="option"
-                          class="h-4 w-4"
-                        />
-                        <span>{{ option }}</span>
-                      </label>
-                    </div>
-
-                    <input
-                      v-else
-                      v-model="ensureManualFormRow(manualItem.itemKey)[field.key]"
-                      :type="field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'"
-                      class="w-full form-input-compact"
-                      :placeholder="getManualFieldPlaceholder(field)"
-                    />
-
-                    <p
-                      v-if="submitAttempted && manualFieldError(manualItem.itemKey, field.key)"
-                      class="text-xs text-red-500"
-                    >
-                      {{ manualFieldError(manualItem.itemKey, field.key) }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <CheckoutManualForm
+            :manual-form-products="manualFormProducts"
+            v-model="manualFormData"
+            :submit-attempted="submitAttempted"
+            :get-manual-field-label="getManualFieldLabel"
+            :get-manual-field-placeholder="getManualFieldPlaceholder"
+            :manual-field-error="manualFieldError"
+          />
 
           <div class="rounded-2xl border theme-panel p-6">
             <h2 class="mb-4 text-lg font-bold theme-text-primary">{{ t('checkout.couponTitle') }}</h2>
@@ -338,37 +265,45 @@
                   </div>
                 </div>
                 <label class="inline-flex items-center gap-2 text-xs theme-text-secondary">
-                  <input v-model="useBalance" type="checkbox" class="h-4 w-4 accent-primary" />
+                  <input v-model="useBalance" type="checkbox" class="h-4 w-4 accent-primary" :disabled="walletOnlyPayment" />
                   <span>{{ t('payment.useBalance') }}</span>
                 </label>
               </div>
+              <div v-if="walletOnlyPayment" class="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                {{ t('payment.walletOnlyHint') }}
+              </div>
               <div v-if="useBalance" class="mt-2 space-y-1 text-xs theme-text-muted">
                 <div>{{ t('payment.walletDeductLabel') }}：{{ expectedWalletPaidDisplay }}</div>
-                <div>{{ t('payment.onlinePayLabel') }}：{{ expectedOnlinePayDisplay }}</div>
+                <div v-if="!walletOnlyPayment">{{ t('payment.onlinePayLabel') }}：{{ expectedOnlinePayDisplay }}</div>
+                <div v-if="walletOnlyPayment && expectedOnlinePayCents > 0" class="text-amber-600 dark:text-amber-400">
+                  {{ t('payment.walletInsufficientHint') }}
+                </div>
               </div>
             </div>
 
-            <!-- Channel Grid -->
-            <div v-if="requiresOnlineChannel && paymentChannels.length > 0" class="grid grid-cols-2 gap-2">
-              <button v-for="channel in paymentChannels" :key="channel.id"
-                type="button"
-                @click="selectedChannelId = channel.id"
-                class="text-left border rounded-lg p-2.5 transition-colors"
-                :class="selectedChannelId === channel.id ? 'theme-selected-surface' : 'theme-interactive-surface'">
-                <div class="flex items-center gap-2">
-                  <img v-if="channel.icon" :src="getImageUrl(channel.icon)" class="h-5 w-5 rounded object-contain shrink-0" />
-                  <div class="text-sm theme-text-primary font-medium truncate">{{ channel.name }}</div>
-                </div>
-                <div class="mt-1 space-y-0.5 text-xs theme-text-muted">
-                  <div>{{ t('payment.feeLabel') }}：{{ formatChannelFeeRate(channel) }}</div>
-                  <div>{{ t('payment.fixedFeeLabel') }}：{{ formatChannelFixedFee(channel) }}</div>
-                </div>
-              </button>
-            </div>
-            <div v-else-if="requiresOnlineChannel && paymentChannels.length === 0" class="text-xs theme-text-muted">
-              {{ t('checkout.noPaymentChannels') }}
-            </div>
-            <div v-else-if="!requiresOnlineChannel" class="text-xs text-emerald-600 dark:text-emerald-400">
+            <!-- Channel Grid (hidden in wallet-only mode) -->
+            <template v-if="!walletOnlyPayment">
+              <div v-if="requiresOnlineChannel && paymentChannels.length > 0" class="grid grid-cols-2 gap-2">
+                <button v-for="channel in paymentChannels" :key="channel.id"
+                  type="button"
+                  @click="selectedChannelId = channel.id"
+                  class="text-left border rounded-lg p-2.5 transition-colors"
+                  :class="selectedChannelId === channel.id ? 'theme-selected-surface' : 'theme-interactive-surface'">
+                  <div class="flex items-center gap-2">
+                    <img v-if="channel.icon" :src="getImageUrl(channel.icon)" class="h-5 w-5 rounded object-contain shrink-0" />
+                    <div class="text-sm theme-text-primary font-medium truncate">{{ channel.name }}</div>
+                  </div>
+                  <div class="mt-1 space-y-0.5 text-xs theme-text-muted">
+                    <div>{{ t('payment.feeLabel') }}：{{ formatChannelFeeRate(channel) }}</div>
+                    <div>{{ t('payment.fixedFeeLabel') }}：{{ formatChannelFixedFee(channel) }}</div>
+                  </div>
+                </button>
+              </div>
+              <div v-else-if="requiresOnlineChannel && paymentChannels.length === 0" class="text-xs theme-text-muted">
+                {{ t('checkout.noPaymentChannels') }}
+              </div>
+            </template>
+            <div v-if="!requiresOnlineChannel" class="text-xs text-emerald-600 dark:text-emerald-400">
               {{ t('checkout.walletCoversAll') }}
             </div>
           </div>
@@ -404,6 +339,7 @@ import { getImageUrl } from '../utils/image'
 import { getAffiliateCode, getAffiliateVisitorKey } from '../utils/affiliate'
 import ImageCaptcha from '../components/captcha/ImageCaptcha.vue'
 import TurnstileCaptcha from '../components/captcha/TurnstileCaptcha.vue'
+import CheckoutManualForm from '../components/checkout/CheckoutManualForm.vue'
 import { useLocalized } from '../composables/useProduct'
 
 const router = useRouter()
@@ -445,7 +381,7 @@ const walletBalance = ref('0')
 const paymentChannels = computed(() => {
   const list = appStore.config?.payment_channels
   if (!Array.isArray(list)) return []
-  return list.filter((channel: any) => {
+  let filtered = list.filter((channel: any) => {
     const providerType = String(channel?.provider_type || '').toLowerCase()
     const channelType = String(channel?.channel_type || '').toLowerCase()
     if (providerType === 'epay') {
@@ -453,8 +389,31 @@ const paymentChannels = computed(() => {
     }
     return true
   })
+  // 按购物车中商品允许的支付渠道交集过滤
+  const items = cartItems.value
+  if (items.length > 0) {
+    let intersectionArr: number[] | null = null
+    for (const item of items) {
+      const ids = item.paymentChannelIds
+      if (!Array.isArray(ids) || ids.length === 0) continue
+      const idSet = new Set(ids.map(Number))
+      if (intersectionArr === null) {
+        intersectionArr = [...idSet]
+      } else {
+        intersectionArr = intersectionArr.filter((id) => idSet.has(id))
+      }
+    }
+    if (intersectionArr !== null && intersectionArr.length > 0) {
+      const allowedSet = new Set(intersectionArr)
+      filtered = filtered.filter((ch: any) => allowedSet.has(Number(ch?.id)))
+    } else if (intersectionArr !== null) {
+      filtered = []
+    }
+  }
+  return filtered
 })
 
+const walletOnlyPayment = computed(() => !!appStore.config?.wallet_only_payment)
 const showBalanceOption = computed(() => userAuthStore.isAuthenticated)
 const expectedWalletPaidCents = computed(() => {
   if (!showBalanceOption.value || !useBalance.value) return 0
@@ -688,12 +647,7 @@ const getManualFieldPlaceholder = (field: ManualFormField) => {
 
 const manualFieldErrorKey = (itemKey: string, fieldKey: string) => `${itemKey}:${fieldKey}`
 
-const ensureManualFormRow = (itemKey: string) => {
-  if (!manualFormData.value[itemKey]) {
-    manualFormData.value[itemKey] = {}
-  }
-  return manualFormData.value[itemKey]
-}
+
 
 const manualFormValidation = computed(() => {
   const errors: Record<string, string> = {}
@@ -864,7 +818,8 @@ const canSubmit = computed(() => {
   if (cartItems.value.length === 0) return false
   if (!manualFormValidation.value.valid) return false
   if (cartItems.value.some((item) => itemStockExceeded(item))) return false
-  if (requiresOnlineChannel.value && !selectedChannelId.value) return false
+  if (walletOnlyPayment.value && expectedOnlinePayCents.value > 0) return false
+  if (!walletOnlyPayment.value && requiresOnlineChannel.value && !selectedChannelId.value) return false
   if (userAuthStore.isAuthenticated) return true
   if (checkoutMode.value !== 'guest') return false
   if (!guestEmail.value.trim() || !guestPassword.value.trim() || !guestEmailValid.value) return false
@@ -888,7 +843,8 @@ const submitBlockedReason = computed(() => {
   if (stockBlockedItem) {
     return itemStockHint(stockBlockedItem) || t('cart.stockOut')
   }
-  if (requiresOnlineChannel.value && !selectedChannelId.value) return t('checkout.errors.selectPayment')
+  if (walletOnlyPayment.value && expectedOnlinePayCents.value > 0) return t('payment.walletInsufficientHint')
+  if (!walletOnlyPayment.value && requiresOnlineChannel.value && !selectedChannelId.value) return t('checkout.errors.selectPayment')
   if (userAuthStore.isAuthenticated) return ''
   if (checkoutMode.value !== 'guest') return t('checkout.errors.loginOrGuest')
   if (!guestEmail.value.trim() || !guestPassword.value.trim()) return t('checkout.errors.missingGuest')
@@ -1102,6 +1058,10 @@ watch(
   { deep: true }
 )
 
+watch(walletOnlyPayment, (v) => {
+  if (v) useBalance.value = true
+}, { immediate: true })
+
 watch(normalizedCouponCode, (value, previous) => {
   if (value === previous) return
   couponRefreshing.value = true
@@ -1148,12 +1108,6 @@ const checkoutItemImage = (item: CartItem) => {
   const rawImage = String(item.image || '').trim()
   if (!rawImage) return ''
   return getImageUrl(rawImage)
-}
-
-const manualItemTitle = (manualItem: ManualFormProduct) => {
-  const productTitle = getLocalizedText(manualItem.title)
-  if (manualItem.skuCount <= 1) return productTitle
-  return `${productTitle} (${t('checkout.manualFormAppliesToSkuCount', { count: manualItem.skuCount })})`
 }
 
 const itemSubtotal = (item: CartItem) => {

@@ -12,6 +12,7 @@
         <div
           v-for="item in toasts"
           :key="item.id"
+          role="alert"
           class="pointer-events-auto mb-2 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-xl"
           :class="typeClass(item.type)"
         >
@@ -24,7 +25,14 @@
           <svg v-else class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span>{{ item.message }}</span>
+          <span class="flex-1">{{ item.message }}</span>
+          <button
+            v-if="item.action"
+            class="ml-2 shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold underline underline-offset-2 transition-colors hover:opacity-80"
+            @click="handleAction(item)"
+          >
+            {{ item.action.label }}
+          </button>
         </div>
       </TransitionGroup>
     </div>
@@ -32,9 +40,9 @@
 </template>
 
 <script setup lang="ts">
-import { useToast } from '../composables/useToast'
+import { useToast, type ToastItem } from '../composables/useToast'
 
-const { toasts } = useToast()
+const { toasts, removeToast } = useToast()
 
 const positionClass = 'bottom-6 left-1/2 -translate-x-1/2 md:bottom-auto md:top-6 flex flex-col items-center'
 
@@ -47,5 +55,10 @@ const typeClass = (type: string) => {
     default:
       return 'theme-alert-info'
   }
+}
+
+const handleAction = (item: ToastItem) => {
+  item.action?.onClick()
+  removeToast(item.id)
 }
 </script>

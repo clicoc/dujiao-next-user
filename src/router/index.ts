@@ -217,6 +217,12 @@ const router = createRouter({
             meta: { requiresUserAuth: true }
         },
         {
+            path: '/recharge-orders/:recharge_no',
+            name: 'recharge-order-detail',
+            component: () => import('../views/RechargeOrderDetail.vue'),
+            meta: { requiresUserAuth: true }
+        },
+        {
             path: '/guest/orders',
             name: 'guest-orders',
             component: () => import('../views/GuestOrders.vue'),

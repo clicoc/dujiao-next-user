@@ -8,7 +8,7 @@
     @click="$emit('click', product.slug)">
 
     <!-- Thumbnail -->
-    <div class="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 overflow-hidden relative rounded-lg m-2 sm:m-2.5">
+    <div class="w-11 h-11 sm:w-16 sm:h-16 flex-shrink-0 overflow-hidden relative rounded-lg m-1.5 sm:m-2.5">
       <img v-if="product.images && getFirstImageUrl(product.images)" :src="getFirstImageUrl(product.images)"
         :alt="getLocalizedText(product.title)"
         class="w-full h-full object-cover transition-transform duration-500"
@@ -30,14 +30,14 @@
     </div>
 
     <!-- Info (flex-1) -->
-    <div class="flex-1 min-w-0 py-2 pr-1 flex flex-col justify-center gap-0.5">
+    <div class="flex-1 min-w-0 py-1.5 sm:py-2 pr-0.5 sm:pr-1 flex flex-col justify-center gap-0.5">
       <!-- Row 1: Category · Title · Tags -->
       <div class="flex items-center gap-1.5 min-w-0">
         <span v-if="product.category?.name" class="hidden sm:inline text-[11px] theme-text-muted uppercase tracking-wider truncate max-w-[80px] flex-shrink-0">
           {{ getLocalizedText(product.category.name) }}
         </span>
         <span v-if="product.category?.name" class="hidden sm:inline text-[11px] theme-text-muted opacity-30 flex-shrink-0">·</span>
-        <h3 class="text-sm font-semibold theme-text-primary truncate">
+        <h3 class="text-xs sm:text-sm font-semibold theme-text-primary truncate">
           {{ getLocalizedText(product.title) }}
         </h3>
         <span v-for="(tag, tagIndex) in (product.tags || []).slice(0, 1)" :key="tagIndex"
@@ -76,11 +76,11 @@
     </div>
 
     <!-- Price + Actions (right) -->
-    <div class="flex-shrink-0 flex items-center gap-2 sm:gap-3 pr-2.5 sm:pr-4">
+    <div class="flex-shrink-0 flex items-center gap-1 sm:gap-3 pr-1.5 sm:pr-4">
       <!-- Price -->
       <div class="text-right">
         <div v-if="hasPromotionPrice(product)" class="flex flex-col items-end">
-          <span class="text-sm font-bold text-rose-600 dark:text-rose-300 whitespace-nowrap">
+          <span class="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-300 whitespace-nowrap">
             {{ formatPrice(getPromotionPriceAmount(product), siteCurrency) }}
           </span>
           <div class="flex items-center gap-1">
@@ -89,7 +89,7 @@
           </div>
         </div>
         <div v-else>
-          <span class="text-sm font-bold theme-text-primary whitespace-nowrap">
+          <span class="text-xs sm:text-sm font-bold theme-text-primary whitespace-nowrap">
             {{ formatPrice(product.price_amount, siteCurrency) }}
           </span>
           <div v-if="hasPromotionRules(product)">
@@ -101,7 +101,7 @@
       <!-- Quick buy cart icon -->
       <button
         type="button"
-        class="relative flex items-center justify-center w-8 h-8 rounded-lg border transition-all flex-shrink-0"
+        class="relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg border transition-all flex-shrink-0"
         :class="isSoldOut(product)
           ? 'opacity-40 cursor-not-allowed border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600'
           : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-100 dark:hover:text-white dark:hover:border-gray-500 dark:hover:bg-gray-800'"
@@ -114,7 +114,7 @@
       </button>
 
       <!-- Arrow -->
-      <svg class="w-4 h-4 flex-shrink-0 transition-transform theme-text-muted"
+      <svg class="hidden sm:block w-4 h-4 flex-shrink-0 transition-transform theme-text-muted"
         :class="isSoldOut(product) ? '' : 'group-hover:translate-x-0.5 group-hover:text-gray-900 dark:group-hover:text-white'"
         fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

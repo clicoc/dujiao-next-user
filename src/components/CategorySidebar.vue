@@ -80,7 +80,7 @@
             <div class="space-y-2">
               <div class="flex items-stretch gap-2">
                 <button @click="$emit('selectCategory', group.id, true)"
-                  class="flex-1 text-left px-4 py-3 rounded-xl transition-all duration-300 border flex items-center gap-2 min-h-[44px]"
+                  class="flex-1 min-w-0 text-left px-4 py-3 rounded-xl transition-all duration-300 border flex items-center gap-2 min-h-[44px]"
                   :class="selectedCategory === group.id
                     ? 'theme-btn-primary border border-transparent'
                     : 'border-transparent theme-text-secondary hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'">
@@ -166,7 +166,7 @@
           <div :class="compact ? 'space-y-1.5' : 'space-y-2'">
             <div class="flex items-stretch" :class="compact ? 'gap-1.5' : 'gap-2'">
               <button @click="$emit('selectCategory', group.id)"
-                class="flex-1 text-left rounded-xl transition-all duration-300 border flex items-center gap-2"
+                class="flex-1 min-w-0 text-left rounded-xl transition-all duration-300 border flex items-center gap-2"
                 :class="[
                   compact ? 'px-3 py-2.5 text-sm' : 'px-4 py-3',
                   selectedCategory === group.id

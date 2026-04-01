@@ -113,7 +113,7 @@
                     </div>
                   </div>
                   <button
-                    @click="cartStore.removeItem(item.productId, item.skuId)"
+                    @click="removeWithUndo(item)"
                     class="text-sm theme-link-muted transition-colors hover:text-red-500 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
                   >
                     <svg class="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,6 +210,7 @@ import { buildSkuDisplayText, normalizeSkuId } from '../utils/sku'
 import { refreshCartStockSnapshots } from '../utils/cartStock'
 import { getImageUrl } from '../utils/image'
 import { useLocalized } from '../composables/useProduct'
+import { toast } from '../composables/useToast'
 
 const cartStore = useCartStore()
 const appStore = useAppStore()
@@ -230,6 +231,20 @@ const totalAmount = computed(() => {
   }, 0)
   return centsToAmount(totalCents)
 })
+
+const removeWithUndo = (item: CartItem) => {
+  const removedItem = { ...item }
+  cartStore.removeItem(item.productId, item.skuId)
+  toast.info(t('cart.removed'), {
+    duration: 5000,
+    action: {
+      label: t('cart.undo'),
+      onClick: () => {
+        cartStore.addItem(removedItem, removedItem.quantity)
+      },
+    },
+  })
+}
 
 const flowSteps = computed(() => ([
   { key: 'cart', label: t('cart.title'), active: true },

@@ -17,273 +17,57 @@
         {{ securityAlert.message }}
       </div>
 
-      <div class="mb-6 rounded-2xl border border-gray-200/70 bg-gray-50/70 p-4 dark:border-white/10 dark:bg-white/5">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 class="text-base font-semibold theme-text-primary">{{ t('personalCenter.security.telegramTitle') }}</h3>
-            <p class="mt-1 text-xs theme-text-muted">
-              {{ telegramEnabled ? t('personalCenter.security.telegramSubtitle') : t('personalCenter.security.telegramDisabledTip') }}
-            </p>
-          </div>
-          <span class="theme-badge px-3 py-1 text-xs font-semibold" :class="telegramBound ? 'theme-badge-success' : 'theme-badge-warning'">
-            {{ telegramBound ? t('personalCenter.security.telegramBound') : t('personalCenter.security.telegramUnbound') }}
-          </span>
-        </div>
+      <TelegramBindingSection
+        :telegram-enabled="telegramEnabled"
+        :telegram-bound="telegramBound"
+        :loading-telegram-binding="userProfileStore.loadingTelegramBinding"
+        :avatar-url="userProfileStore.telegramBinding?.avatar_url || ''"
+        :telegram-display-name="telegramDisplayName"
+        :provider-user-id="userProfileStore.telegramBinding?.provider_user_id || '-'"
+        :formatted-auth-at="formatDate(userProfileStore.telegramBinding?.auth_at) || '-'"
+        :unbinding-telegram="userProfileStore.unbindingTelegram"
+        :can-unbind-telegram="canUnbindTelegram"
+        :show-telegram-mini-app-entry="showTelegramMiniAppEntry"
+        :show-mini-app-bind-action="showMiniAppBindAction"
+        :show-telegram-widget="showTelegramWidget"
+        :binding-telegram="userProfileStore.bindingTelegram"
+        :mini-app-init-data="miniAppInitData"
+        ref="telegramSectionRef"
+        @unbind="handleUnbindTelegram"
+        @mini-app-bind="handleTelegramMiniAppBind"
+        @open-mini-app-entry="openTelegramMiniAppEntry"
+      />
 
-        <div v-if="userProfileStore.loadingTelegramBinding" class="mt-4 rounded-xl border border-dashed border-gray-200/80 px-4 py-4 text-sm theme-text-muted dark:border-white/10">
-          {{ t('personalCenter.security.telegramLoading') }}
-        </div>
-
-        <div v-else-if="telegramBound" class="mt-4 space-y-4 rounded-xl border border-gray-200/80 bg-white/80 p-4 dark:border-white/10 dark:bg-white/10">
-          <div class="flex items-center gap-3">
-            <img
-              v-if="userProfileStore.telegramBinding?.avatar_url"
-              :src="userProfileStore.telegramBinding?.avatar_url"
-              alt="Telegram Avatar"
-              class="h-11 w-11 rounded-full border border-gray-200 object-cover dark:border-white/10"
-            />
-            <div>
-              <p class="text-sm font-semibold theme-text-primary">{{ telegramDisplayName }}</p>
-              <p class="text-xs theme-text-muted">{{ t('personalCenter.security.telegramBindID', { id: userProfileStore.telegramBinding?.provider_user_id || '-' }) }}</p>
-            </div>
-          </div>
-          <p class="text-xs theme-text-muted">
-            {{ t('personalCenter.security.telegramBindTime', { time: formatDate(userProfileStore.telegramBinding?.auth_at) || '-' }) }}
-          </p>
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-xl border theme-btn-secondary px-4 py-2.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="userProfileStore.unbindingTelegram || !canUnbindTelegram"
-            @click="handleUnbindTelegram"
-          >
-            {{ userProfileStore.unbindingTelegram ? t('personalCenter.security.telegramUnbinding') : t('personalCenter.security.telegramUnbind') }}
-          </button>
-          <p v-if="!canUnbindTelegram" class="text-xs theme-text-muted">
-            {{ t('personalCenter.security.telegramUnbindDisabledTip') }}
-          </p>
-          <div v-if="showTelegramMiniAppEntry" class="space-y-2 rounded-xl border border-dashed border-gray-200/80 px-4 py-3 dark:border-white/10">
-            <p class="text-xs theme-text-muted">
-              {{ t('personalCenter.security.telegramMiniAppEntryHint') }}
-            </p>
-            <button
-              type="button"
-              class="inline-flex items-center justify-center rounded-xl border theme-btn-secondary px-4 py-2.5 text-xs font-semibold"
-              @click="openTelegramMiniAppEntry"
-            >
-              {{ t('personalCenter.security.telegramMiniAppEntryAction') }}
-            </button>
-          </div>
-        </div>
-
-        <div v-else class="mt-4 space-y-3">
-          <p class="text-xs theme-text-muted">
-            {{
-              telegramEnabled
-                ? (showMiniAppBindAction ? t('personalCenter.security.telegramMiniAppBindHint') : t('personalCenter.security.telegramUnboundTip'))
-                : t('personalCenter.security.telegramDisabledTip')
-            }}
-          </p>
-          <button
-            v-if="showMiniAppBindAction"
-            type="button"
-            class="inline-flex items-center justify-center rounded-xl theme-btn-primary px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="userProfileStore.bindingTelegram || miniAppInitData === ''"
-            @click="handleTelegramMiniAppBind"
-          >
-            {{
-              userProfileStore.bindingTelegram
-                ? t('personalCenter.security.telegramMiniAppBinding')
-                : t('personalCenter.security.telegramMiniAppBindAction')
-            }}
-          </button>
-          <div v-else-if="showTelegramWidget" ref="telegramWidgetRef" class="flex justify-start"></div>
-          <div v-if="showTelegramMiniAppEntry" class="space-y-2 rounded-xl border border-dashed border-gray-200/80 px-4 py-3 dark:border-white/10">
-            <p class="text-xs theme-text-muted">
-              {{ t('personalCenter.security.telegramMiniAppEntryHint') }}
-            </p>
-            <button
-              type="button"
-              class="inline-flex items-center justify-center rounded-xl border theme-btn-secondary px-4 py-2.5 text-xs font-semibold"
-              @click="openTelegramMiniAppEntry"
-            >
-              {{ t('personalCenter.security.telegramMiniAppEntryAction') }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <form class="space-y-6" @submit.prevent="handleChangeEmail">
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('personalCenter.security.currentEmailLabel') }}</label>
-          <input
-            :value="currentEmailDisplay"
-            disabled
-            class="w-full rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-gray-500 dark:border-white/10 dark:bg-white/5"
-          />
-          <p v-if="!requiresOldEmailCode" class="mt-2 text-xs theme-text-muted">
-            {{ t('personalCenter.security.bindOnlyTip') }}
-          </p>
-        </div>
-
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('personalCenter.security.newEmailLabel') }}</label>
-          <input
-            v-model="securityForm.newEmail"
-            type="email"
-            :placeholder="t('personalCenter.security.newEmailPlaceholder')"
-            class="w-full form-input-lg"
-          />
-        </div>
-
-        <div class="grid grid-cols-1 gap-4" :class="requiresOldEmailCode ? 'lg:grid-cols-2' : ''">
-          <div v-if="requiresOldEmailCode">
-            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('personalCenter.security.oldCodeLabel') }}</label>
-            <div class="flex flex-col gap-2 sm:flex-row">
-              <input
-                v-model="securityForm.oldCode"
-                :placeholder="t('personalCenter.security.codePlaceholder')"
-                class="min-w-0 flex-1 form-input-lg"
-              />
-              <button
-                type="button"
-                @click="handleSendOldCode"
-                :disabled="userProfileStore.sendingCode || oldCodeCooldown > 0"
-                class="whitespace-nowrap rounded-xl border theme-btn-secondary px-4 py-3 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {{ oldCodeCooldown > 0 ? t('personalCenter.security.countdown', { seconds: oldCodeCooldown }) : t('personalCenter.security.sendOldCode') }}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('personalCenter.security.newCodeLabel') }}</label>
-            <div class="flex flex-col gap-2 sm:flex-row">
-              <input
-                v-model="securityForm.newCode"
-                :placeholder="t('personalCenter.security.codePlaceholder')"
-                class="min-w-0 flex-1 form-input-lg"
-              />
-              <button
-                type="button"
-                @click="handleSendNewCode"
-                :disabled="userProfileStore.sendingCode || newCodeCooldown > 0"
-                class="whitespace-nowrap rounded-xl border theme-btn-secondary px-4 py-3 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {{ newCodeCooldown > 0 ? t('personalCenter.security.countdown', { seconds: newCodeCooldown }) : t('personalCenter.security.sendNewCode') }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="border-t border-gray-200/70 pt-5 dark:border-white/10">
-          <button
-            type="submit"
-            :disabled="userProfileStore.changingEmail"
-            class="inline-flex items-center justify-center rounded-xl theme-btn-primary px-6 py-3 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {{
-              userProfileStore.changingEmail
-                ? t('personalCenter.security.submitting')
-                : (requiresOldEmailCode ? t('personalCenter.security.submit') : t('personalCenter.security.bindSubmit'))
-            }}
-          </button>
-        </div>
-      </form>
+      <EmailChangeForm
+        :current-email-display="currentEmailDisplay"
+        :requires-old-email-code="requiresOldEmailCode"
+        v-model:new-email="securityForm.newEmail"
+        v-model:old-code="securityForm.oldCode"
+        v-model:new-code="securityForm.newCode"
+        :sending-code="userProfileStore.sendingCode"
+        :old-code-cooldown="oldCodeCooldown"
+        :new-code-cooldown="newCodeCooldown"
+        :changing-email="userProfileStore.changingEmail"
+        @submit="handleChangeEmail"
+        @send-old-code="handleSendOldCode"
+        @send-new-code="handleSendNewCode"
+      />
     </div>
 
-    <div class="theme-personal-card">
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-bold theme-text-primary">{{ t('personalCenter.security.loginLogsTitle') }}</h3>
-        <span class="text-xs theme-text-muted">{{ t('personalCenter.security.loginLogsTip') }}</span>
-      </div>
-      <div v-if="userProfileStore.loadingLoginLogs" class="rounded-xl border border-gray-200/70 px-4 py-6 text-center text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
-        {{ t('personalCenter.security.loginLogsLoading') }}
-      </div>
-      <div v-else-if="userProfileStore.recentLoginLogs.length === 0" class="rounded-xl border border-dashed border-gray-200/80 px-4 py-6 text-center text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
-        {{ t('personalCenter.security.loginLogsEmpty') }}
-      </div>
-      <div v-else class="overflow-x-auto rounded-xl border border-gray-200/70 dark:border-white/10">
-        <table class="min-w-full divide-y divide-gray-200 text-left text-sm dark:divide-white/10">
-          <thead class="bg-gray-50/80 text-xs uppercase tracking-wide text-gray-500 dark:bg-white/5 dark:text-gray-400">
-            <tr>
-              <th class="px-4 py-3 font-semibold">{{ t('personalCenter.security.loginLogsTime') }}</th>
-              <th class="px-4 py-3 font-semibold">{{ t('personalCenter.security.loginLogsStatus') }}</th>
-              <th class="px-4 py-3 font-semibold">{{ t('personalCenter.security.loginLogsIp') }}</th>
-              <th class="px-4 py-3 font-semibold">{{ t('personalCenter.security.loginLogsReason') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-            <tr v-for="item in userProfileStore.recentLoginLogs" :key="item.id">
-              <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ formatDate(item.created_at) }}</td>
-              <td class="px-4 py-3">
-                <span class="theme-badge px-2.5 py-1 text-xs font-semibold" :class="loginStatusClass(item.status)">
-                  {{ loginStatusLabel(item.status) }}
-                </span>
-              </td>
-              <td class="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">{{ item.client_ip || '-' }}</td>
-              <td class="px-4 py-3 text-xs theme-text-muted">{{ loginReasonLabel(item.fail_reason) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <LoginHistorySection
+      :loading="userProfileStore.loadingLoginLogs"
+      :logs="userProfileStore.recentLoginLogs"
+    />
 
-    <div v-if="canManagePassword" class="theme-personal-card">
-      <h3 class="text-lg font-bold theme-text-primary">
-        {{ requiresOldPassword ? t('personalCenter.security.passwordTitle') : t('personalCenter.security.setPasswordTitle') }}
-      </h3>
-      <p class="mt-1 text-sm theme-text-muted">
-        {{ requiresOldPassword ? t('personalCenter.security.passwordSubtitle') : t('personalCenter.security.setPasswordSubtitle') }}
-      </p>
-
-      <form class="mt-6 space-y-6" @submit.prevent="handleChangePassword">
-        <div v-if="requiresOldPassword">
-          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('personalCenter.security.currentPasswordLabel') }}</label>
-          <input
-            v-model="passwordForm.oldPassword"
-            type="password"
-            :placeholder="t('personalCenter.security.passwordPlaceholder')"
-            class="w-full form-input-lg"
-          />
-        </div>
-
-        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('personalCenter.security.newPasswordLabel') }}</label>
-            <input
-              v-model="passwordForm.newPassword"
-              type="password"
-              :placeholder="t('personalCenter.security.passwordPlaceholder')"
-              class="w-full form-input-lg"
-            />
-          </div>
-
-          <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('personalCenter.security.confirmPasswordLabel') }}</label>
-            <input
-              v-model="passwordForm.confirmPassword"
-              type="password"
-              :placeholder="t('personalCenter.security.passwordPlaceholder')"
-              class="w-full form-input-lg"
-            />
-          </div>
-        </div>
-
-        <div class="border-t border-gray-200/70 pt-5 dark:border-white/10">
-          <button
-            type="submit"
-            :disabled="userProfileStore.changingPassword"
-            class="inline-flex items-center justify-center rounded-xl border theme-btn-secondary px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {{
-              userProfileStore.changingPassword
-                ? (requiresOldPassword ? t('personalCenter.security.changePasswordSubmitting') : t('personalCenter.security.setPasswordSubmitting'))
-                : (requiresOldPassword ? t('personalCenter.security.changePassword') : t('personalCenter.security.setPassword'))
-            }}
-          </button>
-        </div>
-      </form>
-    </div>
+    <PasswordChangeForm
+      v-if="canManagePassword"
+      :requires-old-password="requiresOldPassword"
+      v-model:old-password="passwordForm.oldPassword"
+      v-model:new-password="passwordForm.newPassword"
+      v-model:confirm-password="passwordForm.confirmPassword"
+      :changing-password="userProfileStore.changingPassword"
+      @submit="handleChangePassword"
+    />
   </div>
 </template>
 
@@ -297,6 +81,10 @@ import { useTelegramMiniAppStore } from '../../stores/telegramMiniApp'
 import { useUserProfileStore } from '../../stores/userProfile'
 import { useUserAuthStore } from '../../stores/userAuth'
 import { buildTelegramMiniAppEntryLink, openTelegramCompatibleLink } from '../../utils/telegramMiniApp'
+import TelegramBindingSection from '../../components/security/TelegramBindingSection.vue'
+import EmailChangeForm from '../../components/security/EmailChangeForm.vue'
+import LoginHistorySection from '../../components/security/LoginHistorySection.vue'
+import PasswordChangeForm from '../../components/security/PasswordChangeForm.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -319,7 +107,7 @@ const passwordForm = reactive({
 const securityAlert = ref<PageAlert | null>(null)
 const oldCodeCooldown = ref(0)
 const newCodeCooldown = ref(0)
-const telegramWidgetRef = ref<HTMLDivElement | null>(null)
+const telegramSectionRef = ref<InstanceType<typeof TelegramBindingSection> | null>(null)
 let cooldownTimer: number | null = null
 const telegramCallbackName = '__dujiaoSecurityTelegramBind'
 
@@ -540,13 +328,15 @@ const buildTelegramPayload = (raw: any): TelegramAuthPayload | null => {
 }
 
 const clearTelegramWidget = () => {
-  if (telegramWidgetRef.value) {
-    telegramWidgetRef.value.innerHTML = ''
+  const widgetEl = telegramSectionRef.value?.telegramWidgetRef
+  if (widgetEl) {
+    widgetEl.innerHTML = ''
   }
 }
 
 const renderTelegramWidget = () => {
-  if (!showTelegramWidget.value || !telegramWidgetRef.value) {
+  const widgetEl = telegramSectionRef.value?.telegramWidgetRef
+  if (!showTelegramWidget.value || !widgetEl) {
     clearTelegramWidget()
     return
   }
@@ -565,7 +355,7 @@ const renderTelegramWidget = () => {
       message: t('personalCenter.security.telegramWidgetLoadFailed'),
     }
   }
-  telegramWidgetRef.value.appendChild(script)
+  widgetEl.appendChild(script)
 }
 
 const handleTelegramBind = async (raw: any) => {
@@ -633,26 +423,6 @@ const handleUnbindTelegram = async () => {
     message: t('personalCenter.security.telegramUnbindSuccess'),
   }
   renderTelegramWidget()
-}
-
-const loginStatusLabel = (status?: string) => {
-  const normalized = (status || '').trim() || 'failed'
-  return t(`personalCenter.security.loginLogsStatusMap.${normalized}`)
-}
-
-const loginStatusClass = (status?: string) => {
-  if ((status || '').trim() === 'success') {
-    return 'theme-badge-success'
-  }
-  return 'theme-badge-danger'
-}
-
-const loginReasonLabel = (reason?: string) => {
-  const normalized = (reason || '').trim()
-  if (!normalized) return '-'
-  const key = `personalCenter.security.loginLogsReasonMap.${normalized}`
-  const translated = t(key)
-  return translated === key ? normalized : translated
 }
 
 const formatDate = (raw?: string | null) => {
