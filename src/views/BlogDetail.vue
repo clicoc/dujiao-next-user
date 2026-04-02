@@ -30,7 +30,7 @@
           <!-- Featured Image -->
           <div v-if="post.thumbnail" class="mb-12 relative h-64 md:h-96 rounded-2xl overflow-hidden group">
             <img :src="getImageUrl(post.thumbnail)" :alt="getLocalizedText(post.title)"
-              class="w-full h-full object-cover">
+              loading="lazy" class="w-full h-full object-cover">
             <div class="absolute inset-0 bg-black/20 dark:bg-black/35"></div>
           </div>
 

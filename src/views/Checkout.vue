@@ -290,7 +290,7 @@
                   class="text-left border rounded-lg p-2.5 transition-colors"
                   :class="selectedChannelId === channel.id ? 'theme-selected-surface' : 'theme-interactive-surface'">
                   <div class="flex items-center gap-2">
-                    <img v-if="channel.icon" :src="getImageUrl(channel.icon)" class="h-5 w-5 rounded object-contain shrink-0" />
+                    <img v-if="channel.icon" :src="getImageUrl(channel.icon)" loading="lazy" class="h-5 w-5 rounded object-contain shrink-0" />
                     <div class="text-sm theme-text-primary font-medium truncate">{{ channel.name }}</div>
                   </div>
                   <div class="mt-1 space-y-0.5 text-xs theme-text-muted">

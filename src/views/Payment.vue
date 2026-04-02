@@ -149,6 +149,39 @@
         </div>
       </div>
 
+      <div v-else-if="orderExpired || orderCanceled" class="space-y-6">
+        <div class="theme-panel rounded-2xl p-6">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold theme-text-primary">
+                {{ orderCanceled ? t('payment.orderCanceled') : t('payment.orderExpired') }}
+              </h2>
+              <p class="text-sm theme-text-muted mt-1">{{ order.order_no }}</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <router-link :to="backLink"
+                class="theme-btn-inline-md border theme-btn-secondary font-semibold">
+                {{ t('payment.backToOrders') }}
+              </router-link>
+            </div>
+          </div>
+          <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div class="theme-surface-soft border rounded-xl p-3">
+              <div class="text-xs theme-text-muted">{{ t('payment.orderNo') }}</div>
+              <div class="theme-text-primary font-mono mt-1">{{ order.order_no }}</div>
+            </div>
+            <div class="theme-surface-soft border rounded-xl p-3">
+              <div class="text-xs theme-text-muted">{{ t('payment.orderStatus') }}</div>
+              <div class="theme-text-primary font-mono mt-1">{{ statusLabel(order.status) }}</div>
+            </div>
+            <div class="theme-surface-soft border rounded-xl p-3">
+              <div class="text-xs theme-text-muted">{{ t('orderDetail.amountTotal') }}</div>
+              <div class="theme-text-primary font-mono mt-1">{{ formatMoney(order.total_amount, order.currency) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-2 space-y-6">
           <div class="theme-panel rounded-2xl p-6">

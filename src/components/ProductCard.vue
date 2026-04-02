@@ -10,11 +10,11 @@
     <div class="aspect-[4/3] overflow-hidden theme-surface-muted relative shrink-0">
       <div class="absolute inset-0 bg-black/15 z-10"></div>
       <img v-if="product.images && getFirstImageUrl(product.images)" :src="getFirstImageUrl(product.images)"
-        :alt="getLocalizedText(product.title)"
+        :alt="getLocalizedText(product.title)" loading="lazy"
         class="w-full h-full object-cover transform transition-transform duration-700 ease-out"
         :class="isSoldOut(product) ? 'grayscale brightness-75' : 'group-hover:scale-110'" />
       <img v-else-if="product.category?.icon" :src="getImageUrl(product.category.icon)"
-        :alt="getLocalizedText(product.category?.name)"
+        :alt="getLocalizedText(product.category?.name)" loading="lazy"
         class="w-full h-full object-cover transform transition-transform duration-700 ease-out"
         :class="isSoldOut(product) ? 'grayscale brightness-75' : 'group-hover:scale-110'" />
       <div v-else class="w-full h-full flex items-center justify-center theme-text-muted">

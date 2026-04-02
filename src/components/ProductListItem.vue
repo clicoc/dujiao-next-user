@@ -10,11 +10,11 @@
     <!-- Thumbnail -->
     <div class="w-11 h-11 sm:w-16 sm:h-16 flex-shrink-0 overflow-hidden relative rounded-lg m-1.5 sm:m-2.5">
       <img v-if="product.images && getFirstImageUrl(product.images)" :src="getFirstImageUrl(product.images)"
-        :alt="getLocalizedText(product.title)"
+        :alt="getLocalizedText(product.title)" loading="lazy"
         class="w-full h-full object-cover transition-transform duration-500"
         :class="isSoldOut(product) ? 'grayscale brightness-75' : 'group-hover:scale-110'" />
       <img v-else-if="product.category?.icon" :src="getImageUrl(product.category.icon)"
-        :alt="getLocalizedText(product.category?.name)"
+        :alt="getLocalizedText(product.category?.name)" loading="lazy"
         class="w-full h-full object-cover transition-transform duration-500"
         :class="isSoldOut(product) ? 'grayscale brightness-75' : 'group-hover:scale-110'" />
       <div v-else class="w-full h-full flex items-center justify-center theme-surface-muted theme-text-muted">

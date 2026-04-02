@@ -1,11 +1,8 @@
-import axios from 'axios'
-import type { InternalAxiosRequestConfig } from 'axios'
 import i18n from '../i18n'
 
 export const t = (key: string, params?: Record<string, any>) =>
     (params ? i18n.global.t(key, params) : i18n.global.t(key)) as string
 
-// 统一响应接口
 export interface ApiResponse<T = any> {
     status_code: number
     msg: string
@@ -18,220 +15,186 @@ export interface ApiResponse<T = any> {
     }
 }
 
-// API 基础配置
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
-// const API_BASE_URL = 'http://localhost:8080' // Original backup
 const API_PREFIX = '/api/v1'
 
-const api = axios.create({
-    baseURL: `${API_BASE_URL}${API_PREFIX}`,
-    timeout: 10000,
-})
-
-const userApi = axios.create({
-    baseURL: `${API_BASE_URL}${API_PREFIX}`,
-    timeout: 10000,
-})
-
-// 注入当前语言到请求头
-function injectLocaleHeader(config: InternalAxiosRequestConfig) {
-    const locale = (i18n.global.locale as any).value || i18n.global.locale
-    if (locale) {
-        config.headers['X-Lang'] = locale
-    }
-    return config
+interface RequestOptions {
+    params?: Record<string, any>
+    headers?: Record<string, string>
+    blob?: boolean
+    silentBusinessError?: boolean
+    [key: string]: any
 }
 
-// 请求拦截器
-api.interceptors.request.use(
-    (config) => injectLocaleHeader(config),
-    (error) => {
-        return Promise.reject(error)
+function buildUrl(base: string, path: string, params?: Record<string, any>): string {
+    const url = `${base}${path}`
+    if (!params) return url
+    const searchParams = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) {
+            searchParams.append(key, String(value))
+        }
     }
-)
+    const qs = searchParams.toString()
+    return qs ? `${url}?${qs}` : url
+}
 
-// 响应拦截器
-api.interceptors.response.use(
-    (response) => {
-        const data: ApiResponse = response.data
+function getLocale(): string {
+    return (i18n.global.locale as any).value || i18n.global.locale || ''
+}
 
-        // 检查响应数据是否存在
-        if (!data) {
-            console.error('API Error: No response data')
-            return Promise.reject(new Error(t('common.api.responseMissing')))
+function getHttpErrorMessage(status: number): string {
+    switch (status) {
+        case 401: return t('common.api.unauthorized')
+        case 403: return t('common.api.forbidden')
+        case 404: return t('common.api.notFound')
+        case 500: return t('common.api.serverError')
+        case 502: return t('common.api.badGateway')
+        case 503: return t('common.api.serviceUnavailable')
+        default: return t('common.api.requestFailedStatus', { status })
+    }
+}
+
+const isAuthEndpoint = (url: string) =>
+    /\/auth\/(login|register|telegram\/login|telegram\/miniapp\/login|forgot-password)/.test(url)
+
+function createClient(injectAuth: boolean) {
+    const baseURL = `${API_BASE_URL}${API_PREFIX}`
+    const timeout = 10000
+
+    async function request(method: string, path: string, bodyOrOptions?: any, options?: RequestOptions): Promise<{ data: any }> {
+        let body: any = undefined
+        let opts: RequestOptions = {}
+
+        if (method === 'GET' || method === 'DELETE') {
+            opts = bodyOrOptions || {}
+        } else {
+            body = bodyOrOptions
+            opts = options || {}
         }
 
-        // 检查是否是新的统一响应格式
-        if (typeof data.status_code !== 'undefined') {
-            // 检查业务状态码
-            if (data.status_code !== 0) {
-                if (data.status_code === 401) {
-                    localStorage.removeItem('user_token')
-                    localStorage.removeItem('user_profile')
-                    window.location.href = '/auth/login'
-                    return Promise.reject(new Error(t('common.api.unauthorized')))
-                }
-                // 业务错误，显示错误消息
-                const fallbackMessage = t('common.api.requestFailed')
-                const errorMessage = data.msg || fallbackMessage
-                const silentBusinessError = Boolean((response.config as any)?.silentBusinessError)
-                if (!silentBusinessError) {
-                    console.error('API Error:', errorMessage)
-                }
-                const businessError = new Error(errorMessage) as Error & { silentBusinessError?: boolean }
-                businessError.silentBusinessError = silentBusinessError
-                return Promise.reject(businessError)
+        const url = buildUrl(baseURL, path, opts.params)
+        const headers: Record<string, string> = { ...opts.headers }
+
+        const locale = getLocale()
+        if (locale) {
+            headers['X-Lang'] = locale
+        }
+
+        if (injectAuth) {
+            const token = localStorage.getItem('user_token')
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`
             }
         }
 
-        // 返回完整的 AxiosResponse 对象
-        return response
-    },
-    (error) => {
-        // HTTP错误处理
-        if (error.response) {
-            const status = error.response.status
-            let message = t('common.api.requestFailed')
+        if (body !== undefined && !(body instanceof FormData)) {
+            headers['Content-Type'] = 'application/json'
+        }
 
-            switch (status) {
-                case 401:
-                    message = t('common.api.unauthorized')
-                    break
-                case 403:
-                    message = t('common.api.forbidden')
-                    break
-                case 404:
-                    message = t('common.api.notFound')
-                    break
-                case 500:
-                    message = t('common.api.serverError')
-                    break
-                case 502:
-                    message = t('common.api.badGateway')
-                    break
-                case 503:
-                    message = t('common.api.serviceUnavailable')
-                    break
-                default:
-                    message = t('common.api.requestFailedStatus', { status })
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), timeout)
+
+        let response: Response
+        try {
+            response = await fetch(url, {
+                method,
+                headers,
+                body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
+                signal: controller.signal,
+            })
+        } catch (err: any) {
+            if (err.name === 'AbortError') {
+                const message = t('common.api.networkError')
+                console.error('Request Timeout:', message)
+                return Promise.reject(new Error(message))
             }
-
-            console.error('HTTP Error:', message)
-            // ElMessage.error(message)
-
-            return Promise.reject(new Error(message))
-        } else if (error.request) {
             const message = t('common.api.networkError')
             console.error('Network Error:', message)
-            // ElMessage.error('网络连接失败，请检查您的网络')
             return Promise.reject(new Error(message))
-        } else {
-            if (!(error as any)?.silentBusinessError) {
-                console.error('Request Error:', error.message)
+        } finally {
+            clearTimeout(timer)
+        }
+
+        // Blob response
+        if (opts.blob) {
+            if (!response.ok) {
+                const message = getHttpErrorMessage(response.status)
+                console.error('HTTP Error:', message)
+                return Promise.reject(new Error(message))
             }
-            return Promise.reject(error)
-        }
-    }
-)
-
-userApi.interceptors.request.use(
-    (config) => {
-        injectLocaleHeader(config)
-        const token = localStorage.getItem('user_token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    },
-    (error) => {
-        return Promise.reject(error)
-    }
-)
-
-const isAuthEndpoint = (url?: string) => {
-    if (!url) return false
-    const path = url.replace(/^https?:\/\/[^/]+/, '')
-    return /\/auth\/(login|register|telegram\/login|telegram\/miniapp\/login|forgot-password)/.test(path)
-}
-
-userApi.interceptors.response.use(
-    (response) => {
-        const data: ApiResponse = response.data
-
-        if (!data) {
-            console.error('API Error: No response data')
-            return Promise.reject(new Error(t('common.api.responseMissing')))
+            const blob = await response.blob()
+            return { data: blob }
         }
 
-        if (typeof data.status_code !== 'undefined') {
-            if (data.status_code !== 0) {
-                if (data.status_code === 401 && !isAuthEndpoint(response.config.url)) {
-                    localStorage.removeItem('user_token')
-                    localStorage.removeItem('user_profile')
-                    window.location.href = '/auth/login'
-                    return Promise.reject(new Error(t('common.api.unauthorized')))
-                }
-                const fallbackMessage = t('common.api.requestFailed')
-                const errorMessage = data.msg || fallbackMessage
-                const silentBusinessError = Boolean((response.config as any)?.silentBusinessError)
-                if (!silentBusinessError) {
-                    console.error('API Error:', errorMessage)
-                }
-                const businessError = new Error(errorMessage) as Error & { silentBusinessError?: boolean }
-                businessError.silentBusinessError = silentBusinessError
-                return Promise.reject(businessError)
-            }
-        }
-
-        return response
-    },
-    (error) => {
-        if (error.response) {
-            const status = error.response.status
-            let message = t('common.api.requestFailed')
-
-            switch (status) {
-                case 401:
-                    message = t('common.api.unauthorized')
-                    if (!isAuthEndpoint(error.config?.url)) {
+        // Parse JSON
+        let data: ApiResponse
+        try {
+            data = await response.json()
+        } catch {
+            if (!response.ok) {
+                const status = response.status
+                const message = getHttpErrorMessage(status)
+                if (status === 401) {
+                    if (injectAuth && !isAuthEndpoint(path)) {
                         localStorage.removeItem('user_token')
                         localStorage.removeItem('user_profile')
                         window.location.href = '/auth/login'
                     }
-                    break
-                case 403:
-                    message = t('common.api.forbidden')
-                    break
-                case 404:
-                    message = t('common.api.notFound')
-                    break
-                case 500:
-                    message = t('common.api.serverError')
-                    break
-                case 502:
-                    message = t('common.api.badGateway')
-                    break
-                case 503:
-                    message = t('common.api.serviceUnavailable')
-                    break
-                default:
-                    message = t('common.api.requestFailedStatus', { status })
+                }
+                console.error('HTTP Error:', message)
+                return Promise.reject(new Error(message))
             }
+            console.error('API Error: No response data')
+            return Promise.reject(new Error(t('common.api.responseMissing')))
+        }
 
+        // HTTP error with JSON body
+        if (!response.ok) {
+            const status = response.status
+            const message = data?.msg || getHttpErrorMessage(status)
+            if (status === 401 && injectAuth && !isAuthEndpoint(path)) {
+                localStorage.removeItem('user_token')
+                localStorage.removeItem('user_profile')
+                window.location.href = '/auth/login'
+            }
             console.error('HTTP Error:', message)
             return Promise.reject(new Error(message))
-        } else if (error.request) {
-            const message = t('common.api.networkError')
-            console.error('Network Error:', message)
-            return Promise.reject(new Error(message))
-        } else {
-            if (!(error as any)?.silentBusinessError) {
-                console.error('Request Error:', error.message)
-            }
-            return Promise.reject(error)
         }
+
+        // Business error check
+        if (typeof data.status_code !== 'undefined' && data.status_code !== 0) {
+            if (data.status_code === 401 && injectAuth && !isAuthEndpoint(path)) {
+                localStorage.removeItem('user_token')
+                localStorage.removeItem('user_profile')
+                window.location.href = '/auth/login'
+                return Promise.reject(new Error(t('common.api.unauthorized')))
+            }
+            const fallbackMessage = t('common.api.requestFailed')
+            const errorMessage = data.msg || fallbackMessage
+            const silentBusinessError = Boolean(opts.silentBusinessError)
+            if (!silentBusinessError) {
+                console.error('API Error:', errorMessage)
+            }
+            const businessError = new Error(errorMessage) as Error & { silentBusinessError?: boolean }
+            businessError.silentBusinessError = silentBusinessError
+            return Promise.reject(businessError)
+        }
+
+        return { data }
     }
-)
+
+    return {
+        get: (path: string, options?: RequestOptions) => request('GET', path, options),
+        post: (path: string, body?: any, options?: RequestOptions) => request('POST', path, body, options),
+        put: (path: string, body?: any, options?: RequestOptions) => request('PUT', path, body, options),
+        patch: (path: string, body?: any, options?: RequestOptions) => request('PATCH', path, body, options),
+        delete: (path: string, options?: RequestOptions) => request('DELETE', path, options),
+    }
+}
+
+const api = createClient(false)
+const userApi = createClient(true)
 
 export { api, userApi }
 export default api

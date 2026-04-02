@@ -11,7 +11,7 @@
       </ErrorBoundary>
     </main>
     <Footer />
-    <Loading :loading="appStore.loading || appStore.navigating" />
+    <Loading :loading="appStore.loading" />
     <Toast />
     <ConfirmDialog />
     <BackToTop />

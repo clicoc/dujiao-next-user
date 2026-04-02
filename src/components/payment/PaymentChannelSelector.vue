@@ -5,7 +5,7 @@
       :class="modelValue === channel.id ? 'theme-selected-surface' : 'theme-interactive-surface'">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">
-          <img v-if="channel.icon" :src="getImageUrl(channel.icon)" class="h-5 w-5 rounded object-contain shrink-0" />
+          <img v-if="channel.icon" :src="getImageUrl(channel.icon)" loading="lazy" class="h-5 w-5 rounded object-contain shrink-0" />
           <div class="theme-text-primary font-medium">{{ channel.name }}</div>
         </div>
         <span v-if="modelValue === channel.id"

@@ -295,7 +295,6 @@ router.beforeEach(async (to, _from, next) => {
     const userAuthStore = useUserAuthStore()
     const appStore = useAppStore()
     void captureAffiliateFromRoute(to)
-    appStore.startNavigating()
 
     // Ensure config is loaded before checking template mode
     if (!appStore.config) {
@@ -326,7 +325,6 @@ router.beforeEach(async (to, _from, next) => {
 router.afterEach(() => {
     const appStore = useAppStore()
     const telegramMiniAppStore = useTelegramMiniAppStore()
-    appStore.stopNavigating()
     appStore.applySEO()
     telegramMiniAppStore.syncRouteBackButton(router.currentRoute.value.path, () => {
         if (window.history.length > 1) {
@@ -335,11 +333,6 @@ router.afterEach(() => {
         }
         void router.push('/')
     })
-})
-
-router.onError(() => {
-    const appStore = useAppStore()
-    appStore.stopNavigating()
 })
 
 export default router
