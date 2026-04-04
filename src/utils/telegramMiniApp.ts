@@ -124,10 +124,12 @@ export const initializeTelegramWebApp = (): TelegramMiniAppSnapshot => {
   applyTelegramMiniAppViewport(initialSnapshot.viewportHeight, initialSnapshot.viewportStableHeight)
 
   const webApp = getTelegramWebApp()
-  if (!webApp || !initialSnapshot.isMiniApp) {
+  if (!webApp) {
     return initialSnapshot
   }
 
+  // Always call ready() when webApp exists — on some Telegram platforms,
+  // initData is not populated until after ready() is invoked.
   webApp.ready()
   webApp.expand?.()
 
@@ -163,6 +165,8 @@ export const isTelegramUrlEnvironment = (): boolean => {
 let scriptLoadPromise: Promise<void> | null = null
 
 
+const TELEGRAM_SCRIPT_TIMEOUT_MS = 3000
+
 export const loadTelegramWebAppScript = (): Promise<void> => {
   if (getTelegramWebApp()) return Promise.resolve()
   if (scriptLoadPromise) return scriptLoadPromise
@@ -170,8 +174,29 @@ export const loadTelegramWebAppScript = (): Promise<void> => {
   scriptLoadPromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
     script.src = TELEGRAM_WEB_APP_SCRIPT_URL
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Telegram Web App script'))
+
+    let settled = false
+    const settle = (fn: () => void) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      fn()
+    }
+
+    const timer = setTimeout(() => {
+      settle(() => {
+        scriptLoadPromise = null
+        reject(new Error('Telegram Web App script load timed out'))
+      })
+    }, TELEGRAM_SCRIPT_TIMEOUT_MS)
+
+    script.onload = () => settle(resolve)
+    script.onerror = () => {
+      settle(() => {
+        scriptLoadPromise = null
+        reject(new Error('Failed to load Telegram Web App script'))
+      })
+    }
     document.head.appendChild(script)
   })
 
