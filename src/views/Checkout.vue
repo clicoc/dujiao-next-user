@@ -986,7 +986,6 @@ const handleSubmit = async () => {
   submitAttempted.value = true
   error.value = ''
   previewError.value = ''
-  await syncCartStockSnapshots()
   if (!canSubmit.value) {
     error.value = submitBlockedReason.value || t('checkout.errors.submitFailed')
     return
