@@ -20,7 +20,7 @@
           :value="channelId"
           @change="$emit('update:channelId', Number(($event.target as HTMLSelectElement).value))"
           class="w-full form-input-lg"
-          :disabled="!hasChannels || recharging"
+          :disabled="!hasChannels || channelLoading || recharging"
         >
           <option :value="0">{{ t('personalCenter.wallet.channelPlaceholder') }}</option>
           <option v-for="channel in channels" :key="channel.id" :value="channel.id">
@@ -41,7 +41,7 @@
       <div class="flex items-end">
         <button
           type="submit"
-          :disabled="recharging || !hasChannels"
+          :disabled="recharging || channelLoading || !hasChannels"
           class="inline-flex h-11 w-full items-center justify-center rounded-xl theme-btn-primary px-5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
         >
           {{ recharging ? t('personalCenter.wallet.recharging') : t('personalCenter.wallet.rechargeSubmit') }}
@@ -62,7 +62,10 @@
         <div class="mt-1 font-semibold theme-text-primary">{{ feeAmountDisplay }}</div>
       </div>
     </div>
-    <p v-if="!hasChannels" class="mt-3 text-xs text-amber-600">
+    <p v-if="channelLoading" class="mt-3 text-xs theme-text-muted">
+      {{ t('common.loading') }}
+    </p>
+    <p v-else-if="!hasChannels" class="mt-3 text-xs text-amber-600">
       {{ t('payment.channelEmpty') }}
     </p>
   </div>
@@ -77,6 +80,7 @@ defineProps<{
   remark: string
   channels: Array<{ id: number; name: string }>
   hasChannels: boolean
+  channelLoading: boolean
   recharging: boolean
   selectedChannel: { id: number; name: string } | null
   feeRateDisplay: string
