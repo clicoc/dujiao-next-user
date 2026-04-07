@@ -15,6 +15,7 @@
       :channels="channels"
       :has-channels="hasChannels"
       :recharging="recharging"
+      :channel-loading="channelLoading"
       :selected-channel="selectedChannel"
       :fee-rate-display="selectedChannelFeeRateDisplay"
       :fixed-fee-display="selectedChannelFixedFeeDisplay"
@@ -37,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { walletAPI } from '../../api'
@@ -64,6 +65,11 @@ const pagination = ref({
   total_page: 1,
 })
 const walletAlert = ref<PageAlert | null>(null)
+const channels = ref<any[]>([])
+const channelFetchTimer = ref<number | null>(null)
+const channelFetchSeq = ref(0)
+const channelLoading = ref(false)
+const channelsResolvedAmount = ref('')
 
 const rechargeForm = reactive({
   amount: '',
@@ -71,32 +77,173 @@ const rechargeForm = reactive({
   remark: '',
 })
 
-const channels = computed(() => {
-  const list = appStore.config?.payment_channels
-  if (!Array.isArray(list)) return []
-  let filtered = list.filter((channel: any) => {
-    const providerType = String(channel?.provider_type || '').toLowerCase()
-    const channelType = String(channel?.channel_type || '').toLowerCase()
-    if (providerType === 'epay') {
-      return ['wechat', 'wxpay', 'alipay', 'qqpay'].includes(channelType)
-    }
+const hasChannels = computed(() => {
+  const amount = rechargeForm.amount.trim()
+  const amountCents = amountToCents(amount)
+  if (!amount || amountCents === null || amountCents <= 0) {
     return true
-  })
-  const allowedIds = appStore.config?.wallet_recharge_channel_ids
-  if (Array.isArray(allowedIds) && allowedIds.length > 0) {
-    const allowedSet = new Set(allowedIds.map(Number))
-    filtered = filtered.filter((ch: any) => allowedSet.has(Number(ch?.id)))
   }
-  return filtered.map((channel: any) => ({
-    id: Number(channel.id),
-    name: String(channel.name || channel.channel_type || channel.id),
-    channel_type: String(channel.channel_type || ''),
-    fee_rate: String(channel.fee_rate ?? '0'),
-    fixed_fee: String(channel.fixed_fee ?? '0'),
-  })).filter((channel: any) => Number.isFinite(channel.id) && channel.id > 0)
+  if (channelLoading.value) {
+    return true
+  }
+  if (channelsResolvedAmount.value !== amount) {
+    return true
+  }
+  return channels.value.length > 0
 })
-const hasChannels = computed(() => channels.value.length > 0)
+
 const selectedChannel = computed(() => channels.value.find((item: any) => item.id === rechargeForm.channelId) || null)
+
+const EPAY_ALLOWED_CHANNEL_TYPES = new Set(['wechat', 'wxpay', 'alipay', 'qqpay'])
+
+const channelLimitMeta = (channel?: any) => {
+  const minCents = amountToCents(String(channel?.min_amount ?? ''))
+  const maxCents = amountToCents(String(channel?.max_amount ?? ''))
+  return {
+    minCents,
+    maxCents,
+    hasMin: minCents !== null && minCents > 0,
+    hasMax: maxCents !== null && maxCents > 0,
+  }
+}
+
+const isSupportedEpayChannel = (channel: any) => {
+  const providerType = String(channel?.provider_type || '').toLowerCase()
+  if (providerType !== 'epay') return true
+  const channelType = String(channel?.channel_type || '').toLowerCase()
+  return EPAY_ALLOWED_CHANNEL_TYPES.has(channelType)
+}
+
+const isChannelOutOfRange = (channel: any, targetAmountCents: number) => {
+  const meta = channelLimitMeta(channel)
+  if (!meta.hasMin && !meta.hasMax) return false
+  const lessThanMin = meta.hasMin && meta.minCents !== null && targetAmountCents < meta.minCents
+  const greaterThanMax = meta.hasMax && meta.maxCents !== null && targetAmountCents > meta.maxCents
+  return Boolean(lessThanMin || greaterThanMax)
+}
+
+const shouldHideChannelForAmount = (channel: any, targetAmountCents: number) => {
+  if (!Boolean(channel?.hide_amount_out_range)) return false
+  return isChannelOutOfRange(channel, targetAmountCents)
+}
+
+const getAllowedChannelIdSet = () => {
+  const allowedIds = appStore.config?.wallet_recharge_channel_ids
+  if (!Array.isArray(allowedIds) || allowedIds.length === 0) return null
+  return new Set(allowedIds.map(Number))
+}
+
+const isChannelAllowedByConfig = (channel: any, allowedIdSet: Set<number> | null) => {
+  if (!allowedIdSet) return true
+  return allowedIdSet.has(Number(channel?.id))
+}
+
+const mapChannel = (channel: any) => ({
+  id: Number(channel.id),
+  name: String(channel.name || channel.channel_type || channel.id),
+  channel_type: String(channel.channel_type || ''),
+  fee_rate: String(channel.fee_rate ?? '0'),
+  fixed_fee: String(channel.fixed_fee ?? '0'),
+  min_amount: String(channel.min_amount ?? '0'),
+  max_amount: String(channel.max_amount ?? '0'),
+  hide_amount_out_range: Boolean(channel.hide_amount_out_range),
+})
+
+const normalizeChannels = (list: any[], targetAmountCents: number) => {
+  const allowedIdSet = getAllowedChannelIdSet()
+  return list
+    .filter((channel: any) => isSupportedEpayChannel(channel))
+    .filter((channel: any) => !shouldHideChannelForAmount(channel, targetAmountCents))
+    .filter((channel: any) => isChannelAllowedByConfig(channel, allowedIdSet))
+    .map(mapChannel)
+    .filter((channel: any) => Number.isFinite(channel.id) && channel.id > 0)
+}
+
+const getSelectedChannelAmountHint = (channel: any, amountCents: number) => {
+  if (!isChannelOutOfRange(channel, amountCents)) return ''
+
+  const meta = channelLimitMeta(channel)
+  if (meta.hasMin && meta.hasMax && meta.minCents !== null && meta.maxCents !== null) {
+    return t('payment.channelAmountLimitHint', {
+      min: formatMoney(centsToAmount(meta.minCents), selectedChannelCurrency.value),
+      max: formatMoney(centsToAmount(meta.maxCents), selectedChannelCurrency.value),
+    })
+  }
+  if (meta.hasMin && meta.minCents !== null) {
+    return t('payment.channelAmountMinHint', {
+      min: formatMoney(centsToAmount(meta.minCents), selectedChannelCurrency.value),
+    })
+  }
+  if (meta.hasMax && meta.maxCents !== null) {
+    return t('payment.channelAmountMaxHint', {
+      max: formatMoney(centsToAmount(meta.maxCents), selectedChannelCurrency.value),
+    })
+  }
+  return ''
+}
+
+const selectedChannelAmountHint = computed(() => {
+  const channel = selectedChannel.value
+  if (!channel) return ''
+  const amountCents = amountToCents(rechargeForm.amount.trim())
+  if (amountCents === null || amountCents <= 0) return ''
+  return getSelectedChannelAmountHint(channel, amountCents)
+})
+
+const loadPaymentChannels = async (seq: number, amount: string) => {
+  if (seq !== channelFetchSeq.value) return
+  const amountCents = amountToCents(amount)
+  if (!amount || amountCents === null || amountCents <= 0) {
+    if (seq !== channelFetchSeq.value) return
+    channels.value = []
+    channelsResolvedAmount.value = ''
+    return
+  }
+
+  try {
+    const response = await walletAPI.getPaymentChannels(amount)
+    if (seq !== channelFetchSeq.value) return
+    const list = Array.isArray(response.data.data) ? response.data.data : []
+    channels.value = normalizeChannels(list, amountCents)
+  } catch {
+    if (seq !== channelFetchSeq.value) return
+    channels.value = []
+  } finally {
+    if (seq === channelFetchSeq.value) {
+      channelsResolvedAmount.value = amount
+      channelLoading.value = false
+    }
+  }
+}
+
+const scheduleLoadPaymentChannels = () => {
+  const amount = rechargeForm.amount.trim()
+  const amountCents = amountToCents(amount)
+  if (!amount || amountCents === null || amountCents <= 0) {
+    channelFetchSeq.value += 1
+    if (channelFetchTimer.value) {
+      window.clearTimeout(channelFetchTimer.value)
+      channelFetchTimer.value = null
+    }
+    channelLoading.value = false
+    channelsResolvedAmount.value = ''
+    channels.value = []
+    return
+  }
+
+  const seq = channelFetchSeq.value + 1
+  channelFetchSeq.value = seq
+  channelLoading.value = true
+
+  if (channelFetchTimer.value) {
+    window.clearTimeout(channelFetchTimer.value)
+    channelFetchTimer.value = null
+  }
+  channelFetchTimer.value = window.setTimeout(() => {
+    channelFetchTimer.value = null
+    void loadPaymentChannels(seq, amount)
+  }, 300)
+}
 
 const formatMoney = (amount?: string, currency?: string) => {
   if (amount === null || amount === undefined || amount === '') return '-'
@@ -162,6 +309,13 @@ const handleRecharge = async () => {
     walletAlert.value = {
       level: 'warning',
       message: t('personalCenter.wallet.errors.channelRequired'),
+    }
+    return
+  }
+  if (selectedChannelAmountHint.value) {
+    walletAlert.value = {
+      level: 'warning',
+      message: selectedChannelAmountHint.value,
     }
     return
   }
@@ -237,6 +391,10 @@ const initialize = async () => {
   }
 }
 
+watch(() => rechargeForm.amount, () => {
+  scheduleLoadPaymentChannels()
+}, { immediate: true })
+
 watch(
   channels,
   (list) => {
@@ -258,5 +416,14 @@ watch(
 
 onMounted(() => {
   void initialize()
+})
+
+onUnmounted(() => {
+  channelFetchSeq.value += 1
+  if (channelFetchTimer.value) {
+    window.clearTimeout(channelFetchTimer.value)
+    channelFetchTimer.value = null
+  }
+  channelLoading.value = false
 })
 </script>

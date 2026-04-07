@@ -5,6 +5,7 @@ import type {
 } from './types'
 
 export const walletAPI = {
+    getPaymentChannels: (amount: string) => userApi.post('/wallet/payment-channels', { amount }),
     account: () => userApi.get('/wallet'),
     transactions: (params?: any) => userApi.get('/wallet/transactions', { params }),
     recharge: (data: WalletRechargePayload) => userApi.post('/wallet/recharge', data),

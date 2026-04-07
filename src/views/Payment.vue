@@ -342,6 +342,8 @@
                 :show-balance-option="showBalanceOption"
                 :format-channel-fee-rate="formatChannelFeeRate"
                 :format-channel-fixed-fee="formatChannelFixedFee"
+                :is-channel-disabled-for-amount="isChannelDisabledForAmount"
+                :channel-amount-limit-hint="channelAmountLimitHint"
                 @update:model-value="selectedChannelId = $event"
               />
             </template>
@@ -501,6 +503,9 @@ const redirectTimer = ref<number | null>(null)
 const walletLoading = ref(false)
 const walletBalance = ref('0')
 const useBalance = ref(false)
+const orderPaymentChannels = ref<any[]>([])
+const orderPaymentChannelsLoaded = ref(false)
+const orderPaymentChannelsRequestId = ref(0)
 
 const routeQueryValueToString = (value: unknown): string => {
   if (Array.isArray(value)) {
@@ -569,9 +574,7 @@ const flowSteps = computed(() => ([
   { key: 'payment', label: t('payment.title'), active: true },
 ]))
 
-const configReady = computed(() => !appStore.loading && !!appStore.config)
-const channels = computed(() => {
-  const list = appStore.config?.payment_channels
+const filterChannelsByOrder = (list: any[]) => {
   if (!Array.isArray(list)) return []
   let filtered = list.filter((channel: any) => {
     const providerType = String(channel?.provider_type || '').toLowerCase()
@@ -588,6 +591,15 @@ const channels = computed(() => {
     filtered = filtered.filter((ch: any) => allowedSet.has(Number(ch?.id)))
   }
   return filtered
+}
+
+const configReady = computed(() => !appStore.loading && (!!appStore.config || (!isGuest.value && orderPaymentChannelsLoaded.value)))
+const channels = computed(() => {
+  if (!isGuest.value && orderPaymentChannelsLoaded.value) {
+    return filterChannelsByOrder(orderPaymentChannels.value)
+  }
+  const fallback = appStore.config?.payment_channels
+  return filterChannelsByOrder(Array.isArray(fallback) ? fallback : [])
 })
 
 const normalizeID = (value: unknown) => String(value ?? '').trim()
@@ -841,10 +853,62 @@ const requiresOnlineChannel = computed(() => {
   if (!useBalance.value) return true
   return expectedOnlinePayCents.value > 0
 })
+const channelLimitMeta = (channel?: any) => {
+  const minCents = amountToCents(String(channel?.min_amount ?? ''))
+  const maxCents = amountToCents(String(channel?.max_amount ?? ''))
+  return {
+    minCents,
+    maxCents,
+    hasMin: minCents !== null && minCents > 0,
+    hasMax: maxCents !== null && maxCents > 0,
+    hideAmountOutRange: Boolean(channel?.hide_amount_out_range),
+  }
+}
+const isChannelDisabledForAmount = (channel?: any) => {
+  if (!requiresOnlineChannel.value) return false
+  const targetAmount = expectedOnlinePayCents.value
+  if (targetAmount <= 0) return false
+
+  const meta = channelLimitMeta(channel)
+  if (!meta.hasMin && !meta.hasMax) return false
+
+  const lessThanMin = meta.hasMin && meta.minCents !== null && targetAmount < meta.minCents
+  const greaterThanMax = meta.hasMax && meta.maxCents !== null && targetAmount > meta.maxCents
+  if (!lessThanMin && !greaterThanMax) return false
+
+  return !meta.hideAmountOutRange
+}
+const channelAmountLimitHint = (channel?: any) => {
+  const meta = channelLimitMeta(channel)
+  if (meta.hasMin && meta.hasMax && meta.minCents !== null && meta.maxCents !== null) {
+    return t('payment.channelAmountLimitHint', {
+      min: formatMoney(centsToAmount(meta.minCents), order.value?.currency),
+      max: formatMoney(centsToAmount(meta.maxCents), order.value?.currency),
+    })
+  }
+  if (meta.hasMin && meta.minCents !== null) {
+    return t('payment.channelAmountMinHint', {
+      min: formatMoney(centsToAmount(meta.minCents), order.value?.currency),
+    })
+  }
+  if (meta.hasMax && meta.maxCents !== null) {
+    return t('payment.channelAmountMaxHint', {
+      max: formatMoney(centsToAmount(meta.maxCents), order.value?.currency),
+    })
+  }
+  return ''
+}
+const selectedChannelAmountHint = computed(() => {
+  const channel = findChannelByID(selectedChannelId.value)
+  if (!channel) return ''
+  if (!isChannelDisabledForAmount(channel)) return ''
+  return channelAmountLimitHint(channel)
+})
 const canSubmitPayment = computed(() => {
   if (submitting.value) return false
   if (walletOnlyPayment.value && expectedOnlinePayCents.value > 0) return false
   if (!walletOnlyPayment.value && requiresOnlineChannel.value && !selectedChannelId.value) return false
+  if (requiresOnlineChannel.value && selectedChannelAmountHint.value) return false
   if (orderExpired.value || orderCanceled.value) return false
   return true
 })
@@ -860,6 +924,49 @@ const paymentOnlinePayDisplay = computed(() => {
   }
   return formatMoney(String(paymentResult.value.online_pay_amount), order.value?.currency)
 })
+
+const loadOrderPaymentChannels = async () => {
+  if (isGuest.value) {
+    orderPaymentChannels.value = []
+    orderPaymentChannelsLoaded.value = false
+    return
+  }
+  if (!orderNoResolved.value) {
+    orderPaymentChannels.value = []
+    orderPaymentChannelsLoaded.value = false
+    return
+  }
+  if (!requiresOnlineChannel.value) {
+    orderPaymentChannels.value = []
+    orderPaymentChannelsLoaded.value = true
+    return
+  }
+  const amount = centsToAmount(expectedOnlinePayCents.value)
+  const amountCents = amountToCents(amount)
+  if (amountCents === null || amountCents <= 0) {
+    orderPaymentChannels.value = []
+    orderPaymentChannelsLoaded.value = true
+    return
+  }
+
+  const requestID = ++orderPaymentChannelsRequestId.value
+  try {
+    const response = await userOrderAPI.getPaymentChannels({
+      order_no: orderNoResolved.value,
+      amount,
+    })
+    if (requestID !== orderPaymentChannelsRequestId.value) return
+    const channels = response.data.data
+    orderPaymentChannels.value = Array.isArray(channels) ? channels : []
+    orderPaymentChannelsLoaded.value = true
+  } catch {
+    if (requestID !== orderPaymentChannelsRequestId.value) return
+    orderPaymentChannels.value = []
+    orderPaymentChannelsLoaded.value = false
+  }
+}
+
+const debouncedLoadOrderPaymentChannels = debounceAsync(loadOrderPaymentChannels, 250)
 
 const loadWallet = async () => {
   if (isGuest.value) return
@@ -888,6 +995,8 @@ const loadOrder = async (options?: { silent?: boolean }) => {
       }
       if (!orderNoQuery.value) {
         order.value = null
+        orderPaymentChannels.value = []
+        orderPaymentChannelsLoaded.value = false
         return
       }
       const response = await guestOrderAPI.detail(orderNoQuery.value, {
@@ -899,6 +1008,8 @@ const loadOrder = async (options?: { silent?: boolean }) => {
     } else {
       if (!orderNoQuery.value) {
         order.value = null
+        orderPaymentChannels.value = []
+        orderPaymentChannelsLoaded.value = false
         return
       }
       const response = await userOrderAPI.detail(orderNoQuery.value, { silentBusinessError: true })
@@ -907,6 +1018,8 @@ const loadOrder = async (options?: { silent?: boolean }) => {
   } catch (err) {
     if (!silent) {
       order.value = null
+      orderPaymentChannels.value = []
+      orderPaymentChannelsLoaded.value = false
       if (isGuest.value) {
         guestAuthError.value = t('payment.guestAuthInvalid')
       }
@@ -1177,6 +1290,10 @@ const performPayment = async () => {
     error.value = t('payment.selectChannelError')
     return
   }
+  if (requiresOnlineChannel.value && selectedChannelAmountHint.value) {
+    error.value = selectedChannelAmountHint.value
+    return
+  }
   if (orderCanceled.value) {
     error.value = t('payment.orderCanceled')
     return
@@ -1443,6 +1560,14 @@ watch(
 )
 
 watch(
+  () => [isGuest.value, orderNoResolved.value, requiresOnlineChannel.value, expectedOnlinePayCents.value, order.value?.status],
+  () => {
+    void debouncedLoadOrderPaymentChannels()
+  },
+  { immediate: true }
+)
+
+watch(
   () => [paymentResult.value?.payment_id, route.fullPath, order.value?.status],
   () => {
     void capturePaypalIfNeeded()
@@ -1450,6 +1575,18 @@ watch(
     void syncPaymentReturnIfNeeded()
   },
   { immediate: true }
+)
+
+watch(
+  () => [channels.value, expectedOnlinePayCents.value, requiresOnlineChannel.value],
+  () => {
+    if (!selectedChannelId.value) return
+    const selected = findChannelByID(selectedChannelId.value)
+    if (!selected || isChannelDisabledForAmount(selected)) {
+      selectedChannelId.value = null
+    }
+  },
+  { deep: true }
 )
 
 watch(expiresAtMs, (value) => {
@@ -1478,6 +1615,7 @@ onUnmounted(() => {
     copiedTimer.value = null
   }
   debouncedLoadOrder.cancel()
+  debouncedLoadOrderPaymentChannels.cancel()
 })
 
 const handleGuestAuthSubmit = async () => {
@@ -1497,6 +1635,7 @@ const handleRefresh = async () => {
   await Promise.all([
     debouncedLoadOrder(),
     loadWallet(),
+    debouncedLoadOrderPaymentChannels(),
   ])
 }
 </script>

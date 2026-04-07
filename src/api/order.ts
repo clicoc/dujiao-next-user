@@ -3,6 +3,7 @@ import type { CreatePaymentPayload } from './types'
 
 export const userOrderAPI = {
     preview: (data: any) => userApi.post('/orders/preview', data),
+    getPaymentChannels: (data: any) => userApi.post('/order/payment-channels', data),
     create: (data: any) => userApi.post('/orders', data),
     createAndPay: (data: any) => userApi.post('/orders/create-and-pay', data),
     list: (params?: any) => userApi.get('/orders', { params }),
