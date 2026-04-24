@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://end.teka.eu.org/api/:path*"
+      "destination": "/api/proxy"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://end.teka.eu.org/uploads/:path*"
+      "destination": "/api/proxy"
     },
     {
       "source": "/(.*)",
