@@ -6,49 +6,16 @@
         <p class="text-sm theme-text-secondary">{{ t('cart.subtitle') }}</p>
       </div>
 
-      <!-- Step Indicator with numbers and connecting lines -->
-      <div class="mb-8 rounded-2xl border border-gray-200 theme-panel-soft p-4 backdrop-blur">
-        <div class="flex items-center">
-          <template v-for="(step, idx) in flowSteps" :key="step.key">
-            <div class="flex items-center gap-2" :class="idx === 0 ? '' : 'flex-1'">
-              <!-- Connecting line (before step, except first) -->
-              <div v-if="idx > 0" class="flex-1 h-0.5 rounded-full transition-colors"
-                :class="step.active ? 'bg-current theme-text-accent' : 'theme-surface-muted'"></div>
-              <!-- Step circle + label -->
-              <div class="flex items-center gap-2 shrink-0">
-                <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors"
-                  :class="step.active
-                    ? 'theme-btn-primary border-transparent'
-                    : 'border-gray-300 dark:border-gray-600 theme-text-muted'">
-                  {{ idx + 1 }}
-                </span>
-                <span class="text-sm font-medium hidden sm:inline"
-                  :class="step.active ? 'theme-text-primary' : 'theme-text-muted'">
-                  {{ step.label }}
-                </span>
-              </div>
-            </div>
-          </template>
-        </div>
-      </div>
+      <CheckoutSteps class="mb-8" current-step="cart" />
 
       <!-- Empty State -->
-      <div
+      <EmptyState
         v-if="cartItems.length === 0"
-        class="rounded-2xl border theme-panel p-12 text-center theme-slide-up"
-      >
-        <svg class="w-16 h-16 mx-auto theme-text-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.3 2.6a1 1 0 00.9 1.4H19M7 13l.4 2M10 21a1 1 0 100-2 1 1 0 000 2zm8 1a1 1 0 100-2 1 1 0 000 2z" />
-        </svg>
-        <p class="mb-6 theme-text-muted">{{ t('cart.empty') }}</p>
-        <router-link
-          to="/products"
-          class="theme-btn-inline-md theme-btn-primary gap-2 font-semibold transition-colors"
-        >
-          {{ t('cart.emptyAction') }}
-        </router-link>
-      </div>
+        icon="cart"
+        :title="t('cart.empty')"
+        :action-label="t('cart.emptyAction')"
+        action-to="/products"
+      />
 
       <div v-else class="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div class="space-y-4 lg:col-span-2">
@@ -61,24 +28,11 @@
               <div
                 class="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm dark:border-white/10 dark:bg-black/30"
               >
-                <img
-                  v-if="cartItemImage(item)"
+                <SmartImage
                   :src="cartItemImage(item)"
                   :alt="getLocalizedText(item.title)"
-                  loading="lazy"
-                  decoding="async"
-                  class="h-full w-full object-cover"
+                  img-class="h-full w-full object-cover"
                 />
-                <div v-else class="flex h-full w-full items-center justify-center theme-text-muted">
-                  <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
               </div>
 
               <div class="flex-1 min-w-0">
@@ -211,6 +165,9 @@ import { refreshCartStockSnapshots } from '../utils/cartStock'
 import { getImageUrl } from '../utils/image'
 import { useLocalized } from '../composables/useProduct'
 import { toast } from '../composables/useToast'
+import EmptyState from '../components/EmptyState.vue'
+import SmartImage from '../components/SmartImage.vue'
+import CheckoutSteps from '../components/checkout/CheckoutSteps.vue'
 
 const cartStore = useCartStore()
 const appStore = useAppStore()
@@ -245,12 +202,6 @@ const removeWithUndo = (item: CartItem) => {
     },
   })
 }
-
-const flowSteps = computed(() => ([
-  { key: 'cart', label: t('cart.title'), active: true },
-  { key: 'checkout', label: t('checkout.title'), active: false },
-  { key: 'payment', label: t('payment.title'), active: false },
-]))
 
 const itemSubtotal = (item: CartItem) => {
   const amountCents = amountToCents(item.priceAmount)

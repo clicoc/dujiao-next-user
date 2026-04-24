@@ -70,7 +70,7 @@
               v-model.trim="orderFilters.orderNo"
               type="text"
               :placeholder="t('orders.filters.orderNoPlaceholder')"
-              class="h-11 w-full rounded-xl px-4 theme-input placeholder:text-gray-400"
+              class="h-11 w-full form-input-lg placeholder:text-gray-400"
               @input="handleOrderNoInput"
               @keyup.enter="applyOrderFilters"
             />
@@ -80,7 +80,7 @@
             <label class="mb-1 block text-xs font-semibold theme-text-muted">{{ t('orders.filters.status') }}</label>
             <select
               v-model="orderFilters.status"
-              class="h-11 w-full rounded-xl px-4 theme-input"
+              class="h-11 w-full form-input-lg"
               @change="handleOrderStatusChange"
             >
               <option v-for="item in orderStatusOptions" :key="item.value || 'all'" :value="item.value">
@@ -222,7 +222,7 @@
               v-model.trim="rechargeFilters.rechargeNo"
               type="text"
               :placeholder="t('orders.rechargeFilters.rechargeNoPlaceholder')"
-              class="h-11 w-full rounded-xl px-4 theme-input placeholder:text-gray-400"
+              class="h-11 w-full form-input-lg placeholder:text-gray-400"
               @input="handleRechargeNoInput"
               @keyup.enter="applyRechargeFilters"
             />
@@ -232,7 +232,7 @@
             <label class="mb-1 block text-xs font-semibold theme-text-muted">{{ t('orders.filters.status') }}</label>
             <select
               v-model="rechargeFilters.status"
-              class="h-11 w-full rounded-xl px-4 theme-input"
+              class="h-11 w-full form-input-lg"
               @change="handleRechargeStatusChange"
             >
               <option v-for="item in rechargeStatusOptions" :key="item.value || 'all'" :value="item.value">
@@ -384,10 +384,12 @@ const orderStatusOptions = computed(() => [
   { value: 'paid', label: t('order.status.paid') },
   { value: 'fulfilling', label: t('order.status.fulfilling') },
   { value: 'partially_delivered', label: t('order.status.partially_delivered') },
+  { value: 'partially_refunded', label: t('order.status.partially_refunded') },
   { value: 'delivered', label: t('order.status.delivered') },
   { value: 'completed', label: t('order.status.completed') },
   { value: 'expired', label: t('order.status.expired') },
   { value: 'canceled', label: t('order.status.canceled') },
+  { value: 'refunded', label: t('order.status.refunded') },
 ])
 
 const hasOrderActiveFilters = computed(() => Boolean(orderFilters.orderNo || orderFilters.status))
@@ -396,7 +398,7 @@ const currentOrderStatusLabel = computed(() => {
   return selected?.label || t('orders.filters.statusAll')
 })
 const pendingPaymentCount = computed(() => orders.value.filter((o) => o.status === 'pending_payment').length)
-const finishedCount = computed(() => orders.value.filter((o) => o.status === 'delivered' || o.status === 'completed').length)
+const finishedCount = computed(() => orders.value.filter((o) => o.status === 'delivered' || o.status === 'completed' || o.status === 'partially_refunded' || o.status === 'refunded').length)
 
 const loadOrders = async (page = 1) => {
   orderLoading.value = true

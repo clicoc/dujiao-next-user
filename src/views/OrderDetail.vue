@@ -1,36 +1,56 @@
 <template>
   <div class="min-h-screen theme-page pt-24 pb-16">
     <div class="container mx-auto px-4">
-      <div class="mb-8 flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-black theme-text-primary mb-2">{{ t('orderDetail.title') }}</h1>
-          <p class="theme-text-muted text-sm">{{ t('orderDetail.subtitle') }}</p>
+      <BreadcrumbNav
+        class="mb-6"
+        :items="[
+          { label: t('nav.home'), to: '/' },
+          { label: t('orders.title'), to: '/me/orders' },
+          { label: t('orderDetail.title') },
+        ]"
+      />
+      <div class="mb-8">
+        <h1 class="text-3xl font-black theme-text-primary mb-2">{{ t('orderDetail.title') }}</h1>
+        <p class="theme-text-muted text-sm">{{ t('orderDetail.subtitle') }}</p>
+      </div>
+
+      <!-- Loading Skeleton -->
+      <div v-if="loading" class="space-y-6">
+        <div class="theme-panel rounded-2xl p-6 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="space-y-2">
+              <div class="h-3 w-20 rounded theme-skeleton"></div>
+              <div class="h-5 w-56 rounded theme-skeleton"></div>
+            </div>
+            <div class="h-7 w-24 rounded-full theme-skeleton"></div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t theme-border">
+            <div v-for="i in 4" :key="i" class="space-y-2">
+              <div class="h-3 w-16 rounded theme-skeleton"></div>
+              <div class="h-4 w-24 rounded theme-skeleton"></div>
+            </div>
+          </div>
         </div>
-        <router-link to="/me/orders"
-          class="theme-link-muted text-sm">{{
-            t('orderDetail.backList') }}</router-link>
+        <div class="theme-panel rounded-2xl p-6 space-y-4">
+          <div class="h-5 w-28 rounded theme-skeleton"></div>
+          <div v-for="i in 2" :key="i" class="flex gap-4">
+            <div class="w-16 h-16 rounded-xl theme-skeleton shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-4 w-3/4 rounded theme-skeleton"></div>
+              <div class="h-3 w-1/2 rounded theme-skeleton"></div>
+            </div>
+            <div class="h-5 w-20 rounded theme-skeleton"></div>
+          </div>
+        </div>
       </div>
 
-      <div v-if="loading"
-        class="h-40 border theme-surface-muted rounded-2xl animate-pulse">
-      </div>
-
-      <div v-else-if="!order"
-        class="theme-panel rounded-2xl p-12 text-center">
-        <svg class="mx-auto h-12 w-12 theme-text-muted opacity-50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-        </svg>
-        <p class="theme-text-muted mb-4">{{ t('orderDetail.notFound') }}</p>
-        <button
-          @click="debouncedLoadOrder()"
-          class="inline-flex items-center gap-2 rounded-xl theme-btn-primary px-5 py-2.5 text-sm font-semibold"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          {{ t('errorBoundary.retry') }}
-        </button>
-      </div>
+      <EmptyState
+        v-else-if="!order"
+        icon="alert"
+        :title="t('orderDetail.notFound')"
+        :action-label="t('errorBoundary.retry')"
+        @action="debouncedLoadOrder()"
+      />
 
       <div v-else class="space-y-6">
         <div class="theme-panel rounded-2xl p-6">
@@ -102,6 +122,32 @@
           </div>
         </div>
 
+        <div v-if="showRefundRecordsCard" class="theme-panel rounded-2xl p-6">
+          <h2 class="text-lg font-bold mb-4">{{ t('orderDetail.refundRecordsTitle') }}</h2>
+          <div v-if="refundRecords.length > 0" class="overflow-x-auto rounded-xl border border-gray-200/70 dark:border-white/10">
+            <table class="min-w-full divide-y divide-gray-200 text-left text-sm dark:divide-white/10">
+              <thead class="bg-gray-50/80 text-xs uppercase tracking-wide text-gray-500 dark:bg-white/5 dark:text-gray-400">
+                <tr>
+                  <th class="px-4 py-3 font-semibold">{{ t('orderDetail.refundRecordTime') }}</th>
+                  <th class="px-4 py-3 font-semibold">{{ t('orderDetail.refundRecordAmount') }}</th>
+                  <th class="px-4 py-3 font-semibold">{{ t('orderDetail.refundRecordReason') }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+                <tr
+                  v-for="(record, idx) in refundRecords"
+                  :key="`refund-record-row-${idx}`"
+                >
+                  <td class="px-4 py-3 text-xs theme-text-muted whitespace-nowrap">{{ formatDate(record.created_at) }}</td>
+                  <td class="px-4 py-3 font-mono text-sm theme-text-primary whitespace-nowrap">{{ formatMoney(record.amount, record.currency || order.currency) }}</td>
+                  <td class="px-4 py-3 text-xs theme-text-muted whitespace-pre-wrap break-words">{{ refundReasonText(record.remark) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="text-sm theme-text-muted">{{ t('orderDetail.refundRecordsEmpty') }}</div>
+        </div>
+
         <div v-if="showTimeCard" class="theme-panel rounded-2xl p-6">
           <h2 class="text-lg font-bold mb-4">{{ t('orderDetail.timeTitle') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -131,24 +177,11 @@
               class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 border-b border-gray-100 pb-3 dark:border-white/5">
               <div class="flex min-w-0 items-start gap-3">
                 <div class="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm dark:border-white/10 dark:bg-black/30 sm:h-16 sm:w-16">
-                  <img
-                    v-if="orderItemImage(item)"
+                  <SmartImage
                     :src="orderItemImage(item)"
                     :alt="getLocalizedText(item.title)"
-                    loading="lazy"
-                    decoding="async"
-                    class="h-full w-full object-cover"
+                    img-class="h-full w-full object-cover"
                   />
-                  <div v-else class="flex h-full w-full items-center justify-center text-gray-400 dark:text-gray-500">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.5"
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </div>
                 </div>
                 <div class="min-w-0">
                   <div class="theme-text-primary font-medium">{{ getLocalizedText(item.title) }}</div>
@@ -206,8 +239,8 @@
                     formatMoney(child.total_amount, child.currency || order.currency) }}</div>
                 </div>
                 <span class="theme-badge px-3 py-1 text-xs font-medium"
-                  :class="statusClass(child.status)">
-                  {{ statusLabel(child.status) }}
+                  :class="statusClass(resolvedChildStatus(child))">
+                  {{ statusLabel(resolvedChildStatus(child)) }}
                 </span>
               </div>
               <div class="mt-4">
@@ -218,24 +251,11 @@
                     class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 border-b border-gray-100 pb-3 text-sm theme-text-muted dark:border-white/5">
                     <div class="flex min-w-0 items-start gap-3">
                       <div class="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm dark:border-white/10 dark:bg-black/30 sm:h-16 sm:w-16">
-                        <img
-                          v-if="orderItemImage(item)"
+                        <SmartImage
                           :src="orderItemImage(item)"
                           :alt="getLocalizedText(item.title)"
-                          loading="lazy"
-                          decoding="async"
-                          class="h-full w-full object-cover"
+                          img-class="h-full w-full object-cover"
                         />
-                        <div v-else class="flex h-full w-full items-center justify-center text-gray-400 dark:text-gray-500">
-                          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="1.5"
-                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </div>
                       </div>
                       <div class="min-w-0">
                         <div class="theme-text-primary font-medium">{{ getLocalizedText(item.title) }}</div>
@@ -322,6 +342,17 @@
                     class="mt-3 theme-surface-soft border rounded-xl p-4 text-sm theme-text-secondary whitespace-pre-wrap break-all overflow-hidden">
                     {{ child.fulfillment.payload }}
                   </div>
+                  <div v-if="child.fulfillment.status === 'delivered' && instructionBlocks(child.items).length"
+                    class="mt-4 space-y-3">
+                    <div v-for="(block, bi) in instructionBlocks(child.items)" :key="`child-inst-${child.id}-${bi}`"
+                      class="rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30 p-4">
+                      <div class="flex items-center gap-2 mb-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {{ t('orderDetail.instructionsTitle') }}
+                      </div>
+                      <div class="prose prose-sm max-w-none dark:prose-invert theme-text-secondary break-words" v-html="block.html"></div>
+                    </div>
+                  </div>
                 </div>
                 <div v-else class="text-sm theme-text-muted">{{ t('orderDetail.childFulfillmentEmpty') }}</div>
               </div>
@@ -370,6 +401,17 @@
             class="mt-4 theme-surface-soft border rounded-xl p-4 text-sm theme-text-secondary whitespace-pre-wrap break-all overflow-hidden">
             {{ order.fulfillment.payload }}
           </div>
+          <div v-if="order.fulfillment.status === 'delivered' && instructionBlocks(order.items).length"
+            class="mt-4 space-y-3">
+            <div v-for="(block, bi) in instructionBlocks(order.items)" :key="`order-inst-${bi}`"
+              class="rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30 p-4">
+              <div class="flex items-center gap-2 mb-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {{ t('orderDetail.instructionsTitle') }}
+              </div>
+              <div class="prose prose-sm max-w-none dark:prose-invert theme-text-secondary break-words" v-html="block.html"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -379,6 +421,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import DOMPurify from 'dompurify'
 import { userOrderAPI } from '../api'
 import { useAppStore } from '../stores/app'
 import { useI18n } from 'vue-i18n'
@@ -391,6 +434,9 @@ import { buildSkuDisplayTextFromSnapshot } from '../utils/sku'
 import { getImageUrl } from '../utils/image'
 import { useConfirmDialog } from '../composables/useConfirmDialog'
 import { toast } from '../composables/useToast'
+import EmptyState from '../components/EmptyState.vue'
+import BreadcrumbNav from '../components/BreadcrumbNav.vue'
+import SmartImage from '../components/SmartImage.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -443,6 +489,17 @@ const showTimeCard = computed(() => {
   return Boolean(order.value.paid_at || order.value.expires_at || order.value.canceled_at)
 })
 
+const showRefundRecordsCard = computed(() => {
+  const status = String(order.value?.status || '').trim()
+  return status === 'refunded' || status === 'partially_refunded'
+})
+
+const refundRecords = computed(() => {
+  const records = order.value?.refund_records
+  if (!Array.isArray(records)) return []
+  return records
+})
+
 const loadOrder = async () => {
   loading.value = true
   try {
@@ -483,6 +540,22 @@ const fulfillmentStatusLabelText = (status: string) => fulfillmentStatusLabel(t,
 
 const statusClass = (status: string) => orderStatusClass(status)
 
+const resolvedChildStatus = (child: any) => {
+  const status = String(child?.status || '').trim()
+  const refundedCents = amountToCents(child?.refunded_amount)
+  if (refundedCents !== null && refundedCents > 0) {
+    const totalCents = amountToCents(child?.total_amount)
+    if (totalCents !== null && totalCents > 0 && refundedCents >= totalCents) {
+      return 'refunded'
+    }
+    return 'partially_refunded'
+  }
+  if (order.value?.status === 'refunded' && status !== 'refunded') {
+    return 'refunded'
+  }
+  return status
+}
+
 const formatDate = (raw?: string) => {
   if (!raw) return ''
   const date = new Date(raw)
@@ -494,6 +567,33 @@ const getLocalizedText = (jsonData: any) => {
   if (!jsonData) return ''
   const locale = appStore.locale
   return jsonData[locale] || jsonData['zh-CN'] || jsonData['en-US'] || ''
+}
+
+const sanitizeInstructionsHtml = (raw: string) => DOMPurify.sanitize(raw, {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div', 'img', 'hr'],
+  ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title'],
+  FORBID_ATTR: ['style', 'class', 'id'],
+  ALLOW_DATA_ATTR: false,
+  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|#|\/(?!\/))/i,
+})
+
+const instructionBlocks = (items: any): Array<{ title: string; html: string }> => {
+  if (!Array.isArray(items)) return []
+  const seen = new Set<string>()
+  const blocks: Array<{ title: string; html: string }> = []
+  for (const item of items) {
+    const html = String(getLocalizedText(item?.instructions) || '').trim()
+    if (!html) continue
+    if (seen.has(html)) continue
+    seen.add(html)
+    blocks.push({ title: getLocalizedText(item?.title), html: sanitizeInstructionsHtml(html) })
+  }
+  return blocks
+}
+
+const refundReasonText = (remark?: string) => {
+  const value = String(remark || '').trim()
+  return value || t('orderDetail.refundRecordReasonEmpty')
 }
 
 const orderItemImage = (item: any) => {

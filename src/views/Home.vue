@@ -155,6 +155,7 @@
                 <PaginationNav
                   :current-page="listCurrentPage"
                   :total-pages="listTotalPages"
+                  :loading="listLoading"
                   compact
                   @change-page="listChangePage"
                 />
@@ -338,7 +339,7 @@
             class="cursor-pointer rounded-xl border theme-panel p-5 transition hover:shadow-md"
             @click="goToPost(post.slug)"
           >
-            <div class="mb-2 text-xs theme-text-muted">{{ formatDate(post.created_at) }}</div>
+            <div class="mb-2 text-xs theme-text-muted">{{ formatDate(post.published_at) }}</div>
             <h3 class="line-clamp-2 text-base font-semibold">{{ getLocalizedText(post.title) }}</h3>
             <p class="mt-2 line-clamp-2 text-sm theme-text-secondary">{{ getLocalizedText(post.summary) }}</p>
             <div class="mt-4 text-sm font-medium theme-link">{{ t('blog.readMore') }}</div>

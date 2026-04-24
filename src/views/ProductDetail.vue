@@ -33,17 +33,14 @@
 
       <!-- Product Content -->
       <div v-else-if="product">
-        <!-- Breadcrumb -->
-        <nav class="mb-8 flex items-center space-x-2 text-sm theme-text-muted font-medium">
-          <router-link to="/" class="theme-link-muted">{{ t('nav.home')
-          }}</router-link>
-          <span>/</span>
-          <router-link to="/products" class="theme-link-muted">{{
-            t('nav.products') }}</router-link>
-          <span>/</span>
-          <span class="theme-text-primary truncate max-w-[200px]">{{ getLocalizedText(product.title)
-          }}</span>
-        </nav>
+        <BreadcrumbNav
+          class="mb-8"
+          :items="[
+            { label: t('nav.home'), to: '/' },
+            { label: t('nav.products'), to: '/products' },
+            { label: getLocalizedText(product.title) },
+          ]"
+        />
 
         <!-- Main Info Card -->
         <div
@@ -362,32 +359,30 @@
       </div>
 
       <!-- Error State -->
-      <div v-else
-        class="text-center py-24 theme-panel rounded-3xl border backdrop-blur-sm theme-slide-up">
-        <svg class="w-20 h-20 mx-auto theme-text-muted mb-6" fill="none" stroke="currentColor"
-          viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p class="theme-text-muted text-xl mb-8">
-          {{ t('productDetail.notFound') }}
-        </p>
-        <div class="flex flex-wrap items-center justify-center gap-4">
+      <EmptyState
+        v-else
+        size="lg"
+        icon="alert"
+        :title="t('productDetail.notFound')"
+      >
+        <template #action>
           <button
             @click="loadProduct"
-            class="inline-flex items-center gap-2 theme-btn-primary px-8 py-3 rounded-full font-bold hover:scale-105 transition-transform"
+            class="inline-flex items-center gap-2 theme-btn-primary px-6 py-2.5 rounded-full font-semibold transition-transform hover:scale-105"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             {{ t('errorBoundary.retry') }}
           </button>
-          <router-link to="/products"
-            class="inline-block border theme-btn-secondary px-8 py-3 rounded-full font-bold hover:scale-105 transition-transform">
+          <router-link
+            to="/products"
+            class="inline-flex items-center border theme-btn-secondary px-6 py-2.5 rounded-full font-semibold transition-transform hover:scale-105"
+          >
             {{ t('productDetail.backToProducts') }}
           </router-link>
-        </div>
-      </div>
+        </template>
+      </EmptyState>
     </div>
   </div>
 </template>
@@ -411,6 +406,8 @@ import { useLocalized, useProductLabels } from '../composables/useProduct'
 import { toast } from '../composables/useToast'
 import ProductImageGallery from '../components/product/ProductImageGallery.vue'
 import ProductMobileBar from '../components/product/ProductMobileBar.vue'
+import BreadcrumbNav from '../components/BreadcrumbNav.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 const route = useRoute()
 const router = useRouter()
