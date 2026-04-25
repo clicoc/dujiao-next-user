@@ -5,7 +5,7 @@ export default {
     // 拦截 API 请求
     if (url.pathname.startsWith('/api')) {
       // 目标后端地址
-      const targetHost = 'end.teka.eu.org';
+      const targetHost = 'a.teka.eu.org';
       const targetUrl = `https://${targetHost}${url.pathname}${url.search}`;
       
       // 核心修复：克隆并修改 Headers
